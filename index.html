@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/ntaka-mark.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16794C" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#081810" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Ntaka - learn Yoruba, Igbo, Hausa, Swahili, Amharic, Zulu and more with native African-language teachers. 1-on-1 lessons, group classes and self-paced video courses."
+    />
+    <title>Ntaka | Learn African languages with native teachers</title>
+
+    <link rel="preload" as="image" href="/hero-greeting-poster.webp" fetchpriority="high" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;450;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Apply the saved theme before first paint so there is no flash of the wrong mode. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('ntaka.theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (saved === 'dark' || (!saved && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          /* storage blocked — fall back to light */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

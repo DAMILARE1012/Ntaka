@@ -1,0 +1,265 @@
+import { LANGUAGES_FULL, COUNTRIES, getLanguage, languagesByCountry } from '@/services/mock/catalog';
+import { TEACHERS, TEACHERS_BY_ID } from '@/services/mock/teachers';
+import { GROUP_CLASSES, CLASSES_BY_ID } from '@/services/mock/classes';
+import { VIDEO_COURSES, VIDEOS_BY_ID } from '@/services/mock/videos';
+import { buildTest, scoreTest } from '@/services/mock/placement';
+import { levelIndex, LEVEL_CODES } from '@/lib/cefr';
+
+/**
+ * In-memory query layer standing in for the Ntaka backend.
+ * Every function here maps 1:1 to an endpoint in services/api.js, so swapping in a real
+ * `fetchBaseQuery` later is a change to services/api.js only.
+ */
+
+const matches = (haystack, needle) =>
+  !needle || haystack.toLowerCase().includes(needle.trim().toLowerCase());
+
+const paginate = (items, page = 1, pageSize = 12) => {
+  const total = items.length;
+  const start = (page - 1) * pageSize;
+  return {
+    items: items.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    hasMore: start + pageSize < total,
+  };
+};
+
+/* ---------------------------------------------------------------- languages */
+
+export function listLanguages({ q = '', countryId = '', region = '', featuredOnly = false } = {}) {
+  return LANGUAGES_FULL.filter(
+    (l) =>
+      (!featuredOnly || l.featured) &&
+      (!countryId || l.countryId === countryId) &&
+      (!region || l.region === region) &&
+      (matches(l.name, q) || matches(l.nativeName, q) || matches(l.country ?? '', q)),
+  ).map((l) => ({ ...l, teacherCount: TEACHERS.filter((t) => t.languageId === l.id).length }));
+}
+
+export function readLanguage(id) {
+  const language = LANGUAGES_FULL.find((l) => l.id === id);
+  if (!language) return null;
+  return {
+    ...language,
+    teacherCount: TEACHERS.filter((t) => t.languageId === id).length,
+    classCount: GROUP_CLASSES.filter((c) => c.languageId === id).length,
+    courseCount: VIDEO_COURSES.filter((v) => v.languageId === id).length,
+    siblings: LANGUAGES_FULL.filter((l) => l.countryId === language.countryId && l.id !== id),
+  };
+}
+
+export const listCountries = () => COUNTRIES;
+export const listLanguagesByCountry = () => languagesByCountry();
+
+/* ----------------------------------------------------------------- teachers */
+
+const TEACHER_SORTS = {
+  recommended: (a, b) =>
+    (b.rating ?? 4.4) * Math.log10(b.lessons + 10) - (a.rating ?? 4.4) * Math.log10(a.lessons + 10),
+  rating: (a, b) => (b.rating ?? 0) - (a.rating ?? 0),
+  'price-asc': (a, b) => a.hourlyRate - b.hourlyRate,
+  'price-desc': (a, b) => b.hourlyRate - a.hourlyRate,
+  lessons: (a, b) => b.lessons - a.lessons,
+  newest: (a, b) => a.lessons - b.lessons,
+};
+
+export function listTeachers({
+  q = '',
+  languageId = '',
+  countryId = '',
+  level = '',
+  type = '',
+  tags = [],
+  maxPrice = null,
+  minRating = 0,
+  availableWithin72h = false,
+  instantLesson = false,
+  sort = 'recommended',
+  page = 1,
+  pageSize = 8,
+} = {}) {
+  const filtered = TEACHERS.filter((t) => {
+    if (languageId && t.languageId !== languageId) return false;
+    if (countryId && t.countryId !== countryId) return false;
+    if (level && !t.levels.includes(level)) return false;
+    if (type && t.type !== type) return false;
+    if (tags.length && !tags.every((tag) => t.tags.includes(tag))) return false;
+    if (maxPrice != null && t.hourlyRate > maxPrice) return false;
+    if (minRating && (t.rating ?? 0) < minRating) return false;
+    if (availableWithin72h && t.slotsIn72h === 0) return false;
+    if (instantLesson && !t.instantLesson) return false;
+    if (q && !(matches(t.name, q) || matches(t.headline, q) || matches(t.languageName, q))) {
+      return false;
+    }
+    return true;
+  }).sort(TEACHER_SORTS[sort] ?? TEACHER_SORTS.recommended);
+
+  return paginate(filtered, page, pageSize);
+}
+
+export function readTeacher(id) {
+  const teacher = TEACHERS_BY_ID[id];
+  if (!teacher) return null;
+  return {
+    ...teacher,
+    language: getLanguage(teacher.languageId),
+    classes: GROUP_CLASSES.filter((c) => c.teacherId === id).slice(0, 4),
+    courses: VIDEO_COURSES.filter((v) => v.teacherId === id).slice(0, 3),
+    similar: TEACHERS.filter((t) => t.languageId === teacher.languageId && t.id !== id).slice(0, 3),
+  };
+}
+
+/* ------------------------------------------------------------ group classes */
+
+const CLASS_SORTS = {
+  soonest: (a, b) => new Date(a.startsAt) - new Date(b.startsAt),
+  'price-asc': (a, b) => a.pricePerSeat - b.pricePerSeat,
+  'price-desc': (a, b) => b.pricePerSeat - a.pricePerSeat,
+  'seats-left': (a, b) => a.seatsLeft - b.seatsLeft,
+  level: (a, b) => levelIndex(a.level) - levelIndex(b.level),
+};
+
+export function listClasses({
+  q = '',
+  languageId = '',
+  level = '',
+  topic = '',
+  maxPrice = null,
+  onlyAvailable = false,
+  sort = 'soonest',
+  page = 1,
+  pageSize = 9,
+} = {}) {
+  const filtered = GROUP_CLASSES.filter((c) => {
+    if (languageId && c.languageId !== languageId) return false;
+    if (level && c.level !== level) return false;
+    if (topic && c.topic !== topic) return false;
+    if (maxPrice != null && c.pricePerSeat > maxPrice) return false;
+    if (onlyAvailable && c.seatsLeft <= 0) return false;
+    if (q && !(matches(c.title, q) || matches(c.languageName, q) || matches(c.description, q))) {
+      return false;
+    }
+    return true;
+  })
+    .map((c) => ({ ...c, teacher: TEACHERS_BY_ID[c.teacherId] }))
+    .sort(CLASS_SORTS[sort] ?? CLASS_SORTS.soonest);
+
+  return paginate(filtered, page, pageSize);
+}
+
+export function readClass(id) {
+  const item = CLASSES_BY_ID[id];
+  if (!item) return null;
+  return {
+    ...item,
+    teacher: TEACHERS_BY_ID[item.teacherId],
+    related: GROUP_CLASSES.filter((c) => c.languageId === item.languageId && c.id !== id).slice(0, 3),
+  };
+}
+
+/* ------------------------------------------------------------ video courses */
+
+const VIDEO_SORTS = {
+  popular: (a, b) => b.enrolled - a.enrolled,
+  rating: (a, b) => b.rating - a.rating,
+  'price-asc': (a, b) => a.price - b.price,
+  newest: (a, b) => b.updatedAt.localeCompare(a.updatedAt),
+  shortest: (a, b) => a.totalMinutes - b.totalMinutes,
+};
+
+export function listVideos({
+  q = '',
+  languageId = '',
+  level = '',
+  track = '',
+  freeOnly = false,
+  sort = 'popular',
+  page = 1,
+  pageSize = 9,
+} = {}) {
+  const filtered = VIDEO_COURSES.filter((v) => {
+    if (languageId && v.languageId !== languageId) return false;
+    if (level && v.level !== level) return false;
+    if (track && v.trackKey !== track) return false;
+    if (freeOnly && !v.isFree) return false;
+    if (q && !(matches(v.title, q) || matches(v.languageName, q) || matches(v.promise, q))) {
+      return false;
+    }
+    return true;
+  })
+    .map((v) => ({ ...v, teacher: TEACHERS_BY_ID[v.teacherId] }))
+    .sort(VIDEO_SORTS[sort] ?? VIDEO_SORTS.popular);
+
+  return paginate(filtered, page, pageSize);
+}
+
+export function readVideo(id) {
+  const item = VIDEOS_BY_ID[id];
+  if (!item) return null;
+  return {
+    ...item,
+    teacher: TEACHERS_BY_ID[item.teacherId],
+    related: VIDEO_COURSES.filter((v) => v.languageId === item.languageId && v.id !== id).slice(0, 3),
+  };
+}
+
+/* --------------------------------------------------------------- placement */
+
+export const readPlacementTest = (languageId) => buildTest(languageId);
+
+/**
+ * Look for content at the learner's exact level, then widen outwards.
+ * Nothing is authored above C1 yet, so a C2 placement would otherwise see an empty page.
+ */
+function nearestLevelMatch(level, fetch) {
+  const start = levelIndex(level);
+  const order = [start];
+  for (let step = 1; step < LEVEL_CODES.length; step += 1) {
+    order.push(start - step, start + step);
+  }
+  for (const idx of order) {
+    if (idx < 0 || idx >= LEVEL_CODES.length) continue;
+    const items = fetch(LEVEL_CODES[idx]);
+    if (items.length) return items;
+  }
+  return [];
+}
+
+export function submitPlacement(payload) {
+  const result = scoreTest(payload);
+  const recommendedTeachers = listTeachers({
+    languageId: payload.languageId,
+    level: result.level,
+    pageSize: 3,
+  }).items;
+  const recommendedClasses = nearestLevelMatch(
+    result.level,
+    (level) => listClasses({ languageId: payload.languageId, level, pageSize: 2 }).items,
+  );
+  const recommendedCourses = nearestLevelMatch(
+    result.level,
+    (level) => listVideos({ languageId: payload.languageId, level, pageSize: 2 }).items,
+  );
+
+  return {
+    ...result,
+    languageName: getLanguage(payload.languageId)?.name,
+    recommendedTeachers,
+    recommendedClasses,
+    recommendedCourses,
+  };
+}
+
+/* ------------------------------------------------------------------- stats */
+
+export const readPlatformStats = () => ({
+  languages: LANGUAGES_FULL.length,
+  countries: COUNTRIES.length,
+  teachers: TEACHERS.length,
+  classes: GROUP_CLASSES.length,
+  courses: VIDEO_COURSES.length,
+  lessonsDelivered: TEACHERS.reduce((n, t) => n + t.lessons, 0),
+});

@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  One palette, two themes.
+  Every structural colour in the app resolves through these variables, so a component
+  never needs a `dark:` variant to get its background, border or text right.
+*/
+@layer base {
+  :root {
+    color-scheme: light;
+
+    --bg: 249 251 250;
+    --surface: 255 255 255;
+    --elevated: 255 255 255;
+    --subtle: 241 246 243;
+    --line: 226 234 229;
+    --line-strong: 205 218 210;
+
+    --fg: 13 34 24;
+    --muted: 88 106 96;
+    --faint: 128 146 136;
+
+    --brand: 22 121 76;
+    --brand-hover: 19 96 62;
+    --brand-soft: 236 248 241;
+    --brand-border: 169 223 195;
+    --brand-fg: 255 255 255;
+
+    --accent: 185 109 14;
+    --accent-soft: 251 239 200;
+    --accent-border: 242 199 82;
+    --accent-fg: 61 26 6;
+
+    --shadow: 13 34 24;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    --bg: 8 16 12;
+    --surface: 14 24 19;
+    --elevated: 19 32 25;
+    --subtle: 21 35 27;
+    --line: 32 50 40;
+    --line-strong: 47 71 57;
+
+    --fg: 232 242 236;
+    --muted: 153 173 161;
+    --faint: 120 140 129;
+
+    --brand: 67 174 124;
+    --brand-hover: 116 201 160;
+    --brand-soft: 17 42 30;
+    --brand-border: 32 71 51;
+    --brand-fg: 6 35 23;
+
+    --accent: 242 199 82;
+    --accent-soft: 42 33 12;
+    --accent-border: 74 58 22;
+    --accent-fg: 20 15 4;
+
+    --shadow: 0 0 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg font-sans text-[0.9375rem] leading-relaxed text-fg antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Fraunces is used sparingly and at restrained weights — headings, numbers, the wordmark. */
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-variation-settings: 'SOFT' 20, 'WONK' 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-semibold text-fg;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--bg));
+  }
+
+  ::selection {
+    @apply bg-brand/20 text-fg;
+  }
+
+  /* Quieter scrollbars, both themes */
+  * {
+    scrollbar-color: rgb(var(--line-strong)) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+@layer components {
+  /* Small caps label that sits above a section heading. */
+  .eyebrow {
+    @apply inline-flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-[0.16em] text-brand;
+  }
+
+  /* The one card treatment used across the app. */
+  .surface-card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+
+  .link-arrow {
+    @apply inline-flex items-center gap-1.5 text-sm font-semibold text-brand transition-colors hover:text-brand-hover;
+  }
+
+  /* Hairline rule in the brand greens, used to cap panels. */
+  .brand-rule {
+    @apply h-0.5 w-full;
+    background: linear-gradient(
+      90deg,
+      rgb(var(--brand)) 0%,
+      rgb(var(--brand)) 22%,
+      #74c9a0 22%,
+      #74c9a0 44%,
+      rgb(var(--accent-border)) 44%,
+      rgb(var(--accent-border)) 60%,
+      #134d34 60%,
+      #134d34 100%
+    );
+  }
+
+
+  /* ---------------------------------------------------------------- marquee
+     A seamless horizontal rail. The track holds two identical groups and slides
+     by exactly half its own width, so the loop point is invisible. Duration comes
+     in as --marquee-duration, measured from real item widths in the component. */
+  .marquee-viewport {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 2rem,
+      #000 calc(100% - 2rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 2rem,
+      #000 calc(100% - 2rem),
+      transparent 100%
+    );
+  }
+
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: ntaka-marquee var(--marquee-duration, 60s) linear infinite;
+    will-change: transform;
+  }
+
+  /* Stop on hover, and whenever a link inside has keyboard focus. */
+  .marquee-viewport:hover .marquee-track,
+  .marquee-viewport:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+
+  /* Dark inverted panel — identical in both themes, so text on it is always light. */
+  .panel-dark {
+    @apply bg-ink-950 text-ink-100;
+  }
+  .panel-dark h1,
+  .panel-dark h2,
+  .panel-dark h3 {
+    @apply text-white;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Tabular figures for prices, counts and ratings. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Never auto-scroll for anyone who has asked the OS for less motion - the rail
+   becomes an ordinary swipeable strip instead. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+  .marquee-viewport {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@keyframes ntaka-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

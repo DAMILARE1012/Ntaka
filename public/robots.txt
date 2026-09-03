@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Filtered listings are the same inventory in a different order. They carry a canonical
+# back to the clean URL, but keeping them out of the crawl budget entirely is cheaper.
+Disallow: /*?language=
+Disallow: /*?level=
+Disallow: /*?sort=
+Disallow: /*?page=
+Disallow: /*?q=
+
+# Rewritten to the real host by scripts/prerender.jsx from VITE_SITE_URL.
+Sitemap: https://ntaka.com/sitemap.xml
