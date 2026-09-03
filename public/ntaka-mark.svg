@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#1D1F47"/>
-  <rect y="4" width="32" height="6" fill="#E45C2B"/>
-  <rect y="13" width="32" height="6" fill="#EDB02B"/>
-  <rect y="22" width="32" height="6" fill="#2A9D68"/>
-  <text x="16" y="23" font-family="Verdana,sans-serif" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">N</text>
-</svg>

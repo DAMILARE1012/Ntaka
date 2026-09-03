@@ -8,7 +8,7 @@ const initialState = {
   freeOnly: false,
   sort: 'popular',
   page: 1,
-  pageSize: 9,
+  pageSize: 6,
 };
 
 const videosSlice = createSlice({

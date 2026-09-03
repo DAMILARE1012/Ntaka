@@ -1,11 +1,23 @@
 import { Link } from 'react-router-dom';
 import { cx } from '@/lib/format';
 
+const MARK_SIZES = {
+  sm: 'h-8 w-8',
+  md: 'h-9 w-9',
+  lg: 'h-11 w-11',
+};
+
 /**
- * Ntaka wordmark. The mark is a speech bubble cut from a leaf - conversation and
- * growth, which is what the product sells.
+ * Ntaka wordmark: the emblem in a circular badge, with the name set in Fraunces beside it.
+ *
+ * The badge keeps a white plate in both themes. The emblem is transparent, but its greens
+ * and terracottas were drawn for a white ground and lose contrast on a dark one - the
+ * plate is what keeps it legible in night mode.
+ *
+ * Only the emblem is used, never the full lockup: the supplied artwork carries the NTAKA
+ * wordmark and a tagline that are unreadable below about 200px.
  */
-export default function Logo({ variant = 'dark', className }) {
+export default function Logo({ variant = 'dark', size = 'md', className }) {
   const text = variant === 'light' ? 'text-white' : 'text-fg';
 
   return (
@@ -14,20 +26,20 @@ export default function Logo({ variant = 'dark', className }) {
       className={cx('group inline-flex items-center gap-2.5', className)}
       aria-label="Ntaka home"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand transition-transform duration-200 group-hover:-rotate-6">
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-          <path
-            d="M5 19c0-7.2 4.4-12 13-12 0 8.4-5 12-13 12Z"
-            fill="rgb(var(--brand-fg))"
-            fillOpacity="0.95"
-          />
-          <path
-            d="M5.5 19.5C7 15 9.8 12 14 10"
-            stroke="rgb(var(--brand))"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          />
-        </svg>
+      <span
+        className={cx(
+          'flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-1 ring-1 ring-line transition-transform duration-200 group-hover:scale-105',
+          MARK_SIZES[size],
+        )}
+      >
+        <img
+          src="/ntaka-mark.webp"
+          alt=""
+          aria-hidden="true"
+          width={512}
+          height={512}
+          className="h-full w-full object-contain"
+        />
       </span>
       <span className={cx('font-display text-xl font-semibold tracking-[-0.02em]', text)}>
         Ntaka

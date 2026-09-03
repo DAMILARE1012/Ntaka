@@ -128,9 +128,13 @@ test-results/
 #
 #   public/hero-greeting-poster.webp   built by scripts/build-hero-poster.sh
 #   public/og-default.jpg              built by scripts/build-og-image.sh
+#   public/ntaka-mark.webp             built by scripts/build-logo-assets.sh
+#   public/ntaka-mark-512.png          "
+#   public/apple-touch-icon.png        "
+#   public/favicon.ico, favicon-32.png "
 #   public/flags/*.svg                 vendored from lipis/flag-icons (MIT)
-#   art/                               the original source artwork
+#   art/                               the original source artwork (logo + hero photo)
 #
-# Both scripts need ImageMagick 7, which a CI runner usually will not have, so the
+# All three scripts need ImageMagick 7, which a CI runner usually will not have, so the
 # outputs are committed and the scripts exist to reproduce them.
 # ------------------------------------------------------------------------------

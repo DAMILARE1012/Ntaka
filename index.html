@@ -2,10 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/ntaka-mark.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#16794C" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#081810" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F9FBFA" />
     <meta
       name="description"
       content="Ntaka - learn Yoruba, Igbo, Hausa, Swahili, Amharic, Zulu and more with native African-language teachers. 1-on-1 lessons, group classes and self-paced video courses."
@@ -21,17 +22,19 @@
       rel="stylesheet"
     />
 
-    <!-- Apply the saved theme before first paint so there is no flash of the wrong mode. -->
+    <!--
+      Day mode is the default. Dark is applied before first paint only when the visitor
+      has explicitly chosen it, so there is no flash of the wrong theme on reload.
+      OS preference is deliberately not consulted.
+    -->
     <script>
       (function () {
         try {
-          var saved = localStorage.getItem('ntaka.theme');
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (saved === 'dark' || (!saved && prefersDark)) {
+          if (localStorage.getItem('ntaka.theme') === 'dark') {
             document.documentElement.classList.add('dark');
           }
         } catch (e) {
-          /* storage blocked — fall back to light */
+          /* storage blocked - stay on the light default */
         }
       })();
     </script>

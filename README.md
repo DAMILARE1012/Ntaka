@@ -172,8 +172,13 @@ ranked without reading them.
 
 **The toggle** lives in the navbar (and in the mobile menu under *Appearance*). State is held in
 `features/theme/themeSlice.js`, mirrored onto `<html class="dark">` by middleware and saved to
-`localStorage`. A tiny inline script in `index.html` applies the saved choice *before first paint*,
-so there is no flash of the wrong theme on reload. First-time visitors get their OS preference.
+`localStorage`, along with the `theme-color` meta so mobile browser chrome follows the page.
+
+**Day mode is the default.** OS preference is deliberately not consulted - dark is applied only
+when this visitor has explicitly chosen it. A tiny inline script in `index.html` applies that saved
+choice *before first paint*, so there is no flash on reload. `initialMode()` in the slice must stay
+in step with that script, or React would correct the theme after paint and cause the exact flash the
+script exists to prevent.
 
 ### Type
 
@@ -234,9 +239,14 @@ data preload shows up.
 Two asset pipelines, both re-runnable and both requiring ImageMagick 7:
 
 ```bash
+./scripts/build-logo-assets.sh   # art/Ntaka_Logo.jpg -> emblem, favicons, apple-touch icon
 ./scripts/build-hero-poster.sh   # source art -> transparent, theme-green WebP
 ./scripts/build-og-image.sh      # -> public/og-default.jpg, the 1200x630 social card
 ```
+
+`build-logo-assets.sh` takes only the emblem from the supplied lockup - the NTAKA wordmark
+and tagline in the artwork are unreadable below ~200px, and the UI sets the name in Fraunces
+beside the badge instead.
 
 ## Known gaps
 
@@ -247,6 +257,8 @@ Two asset pipelines, both re-runnable and both requiring ImageMagick 7:
 - The project directory is `Ntaka` and the product is named **Ntaka** throughout. Your brief opened
   with "Nkata" once — if that is the intended name, it appears in `index.html`, `Logo.jsx`,
   `Footer.jsx`, `package.json` and this file.
-#   N t a k a  
- #   N t a k a  
+#   N t a k a 
+ 
+ #   N t a k a 
+ 
  

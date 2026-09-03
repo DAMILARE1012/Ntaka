@@ -23,7 +23,7 @@ export const organization = () => ({
   name: SITE.name,
   url: SITE.url,
   description: SITE.description,
-  logo: { '@type': 'ImageObject', url: absolute('/ntaka-mark.svg') },
+  logo: { '@type': 'ImageObject', url: absolute('/ntaka-mark-512.png'), width: 512, height: 512 },
   slogan: SITE.tagline,
   areaServed: 'Worldwide',
   knowsAbout: [

@@ -9,7 +9,7 @@ const initialState = {
   onlyAvailable: true,
   sort: 'soonest',
   page: 1,
-  pageSize: 9,
+  pageSize: 6,
 };
 
 const classesSlice = createSlice({

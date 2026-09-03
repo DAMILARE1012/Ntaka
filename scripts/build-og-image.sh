@@ -32,10 +32,21 @@ magick "$W/ground.png" \
 magick "$SRC" -resize 500x -background none -gravity south -extent 500x380 "$W/subject.png"
 magick "$W/textured.png" "$W/subject.png" -gravity southeast -geometry +0+0 -compose over -composite "$W/composed.png"
 
+# The emblem, on a white disc so its greens and terracottas hold against the dark
+# ground. Same colorspace pin as the favicon: a white-on-transparent canvas is
+# detected as greyscale and would quantise the artwork.
+magick -size 200x200 xc:none -colorspace sRGB -type TrueColorAlpha \
+  -fill white -draw "circle 100,100 100,2" "$W/disc.png"
+magick "$W/disc.png" \( public/ntaka-mark.webp -resize 156x156 \) \
+  -colorspace sRGB -type TrueColorAlpha -gravity center -compose over -composite \
+  -resize 60x60 "$W/badge.png"
+magick "$W/composed.png" "$W/badge.png" -gravity northwest -geometry +72+76 \
+  -compose over -composite "$W/branded.png"
+
 # Wordmark, headline, and the one line that earns the click.
-magick "$W/composed.png" \
+magick "$W/branded.png" \
   -font Arial-Bold -pointsize 34 -fill white \
-  -annotate +72+118 'Ntaka' \
+  -annotate +146+119 'Ntaka' \
   -font Arial-Bold -pointsize 62 -fill white \
   -annotate +72+236 'Learn the' \
   -annotate +72+304 'languages of Africa' \
