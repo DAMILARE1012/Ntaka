@@ -7,7 +7,8 @@ import QuestionCard from '@/features/placement/components/QuestionCard';
 import WritingTask from '@/features/placement/components/WritingTask';
 import SpeakingTask from '@/features/placement/components/SpeakingTask';
 import MatchGame from '@/features/learning/components/MatchGame';
-import { LESSON_TYPES, QUIZ_MODES } from '@/services/mock/courseContent';
+import { LESSON_TYPES, QUIZ_MODES, TASK_BASIS } from '@/services/mock/courseContent';
+import ConversationPlayer from '@/features/learning/components/ConversationPlayer';
 import { isTranscribable } from '@/lib/groqAssessment';
 import { cx } from '@/lib/format';
 
@@ -120,8 +121,27 @@ function VideoLesson({ lesson, course, onComplete }) {
 
 function AudioLesson({ lesson, onComplete }) {
   const [heard, setHeard] = useState([]);
+  const conversation = lesson.audio?.conversation;
   const phrases = lesson.audio?.phrases ?? [];
   const allHeard = phrases.length > 0 && heard.length === phrases.length;
+
+  // A conversation between two people is a different lesson from a phrase drill: the
+  // learner is listening for meaning, and what follows is a question about what was said.
+  if (conversation) {
+    return (
+      <div className="animate-fade-up">
+        <LessonHeader lesson={lesson} extra={<Badge tone="neutral">Listening</Badge>} />
+        <p className="mt-2 text-muted">{lesson.audio.instruction}</p>
+        <div className="mt-5">
+          <ConversationPlayer
+            conversation={conversation}
+            listened={false}
+            onListened={() => onComplete({ conversationId: conversation.id })}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-up">
@@ -179,17 +199,37 @@ function AudioLesson({ lesson, onComplete }) {
 /* ------------------------------------------------------------------- reading */
 
 function ReadingLesson({ lesson, onComplete }) {
+  const [showGloss, setShowGloss] = useState(false);
+  const gloss = lesson.reading?.gloss;
+
   return (
     <div className="animate-fade-up">
-      <LessonHeader lesson={lesson} />
+      <LessonHeader
+        lesson={lesson}
+        extra={lesson.reading?.passage ? <Badge tone="neutral">Reading</Badge> : null}
+      />
+      {lesson.reading?.instruction && (
+        <p className="mt-2 text-muted">{lesson.reading.instruction}</p>
+      )}
 
       <div className="mt-5 space-y-3">
-        {lesson.reading?.body.map((paragraph) => (
-          <p key={paragraph} className="text-md leading-relaxed text-fg">
-            {paragraph}
-          </p>
+        {lesson.reading?.body.map((paragraph, index) => (
+          <div key={paragraph}>
+            <p className="text-md leading-relaxed text-fg">{paragraph}</p>
+            {/* Line-for-line English, off by default: reading the translation alongside
+                is not reading the passage. */}
+            {showGloss && gloss?.[index] && (
+              <p className="mt-1 text-sm italic text-muted">{gloss[index]}</p>
+            )}
+          </div>
         ))}
       </div>
+
+      {gloss?.length > 0 && (
+        <Button variant="ghost" size="sm" className="mt-3" onClick={() => setShowGloss((v) => !v)}>
+          {showGloss ? 'Hide English' : 'Show English'}
+        </Button>
+      )}
 
       {lesson.reading?.glossary?.length > 0 && (
         <div className="mt-6 rounded-xl border border-line bg-subtle p-4">
@@ -231,6 +271,54 @@ function GameLesson({ lesson, onComplete }) {
 
 /* ---------------------------------------------------------------------- quiz */
 
+/**
+ * What the task is about, shown above it.
+ *
+ * A comprehension question is unanswerable if the learner cannot get back to the material,
+ * and making them navigate backwards to re-read a passage is how a good task becomes an
+ * annoying one. The conversation transcript stays collapsed by default here for the same
+ * reason it does in the lesson itself.
+ */
+function TaskSource({ source }) {
+  const [open, setOpen] = useState(false);
+  if (!source) return null;
+
+  const label =
+    source.kind === TASK_BASIS.CONVERSATION
+      ? 'About the conversation you just heard'
+      : source.kind === TASK_BASIS.READING
+        ? 'About the passage you just read'
+        : 'About the video you just watched';
+
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-subtle p-4">
+      <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-faint">{label}</p>
+      <p className="mt-1.5 text-sm font-semibold text-fg">{source.title}</p>
+
+      {source.transcript && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-brand transition-colors hover:text-brand-hover"
+          >
+            <Icon
+              name="chevronDown"
+              className={cx('h-3.5 w-3.5 transition-transform', open && '-rotate-180')}
+            />
+            {open ? 'Hide it' : 'Look at it again'}
+          </button>
+          {open && (
+            <pre className="mt-3 whitespace-pre-wrap font-display text-sm leading-relaxed text-muted">
+              {source.transcript}
+            </pre>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function QuizLesson({ lesson, course, onComplete }) {
   const quiz = lesson.quiz;
   const [answers, setAnswers] = useState({});
@@ -245,10 +333,27 @@ function QuizLesson({ lesson, course, onComplete }) {
   );
 
   if (quiz?.mode === QUIZ_MODES.WRITE) {
+    const comprehension = quiz.basis === TASK_BASIS.CONVERSATION;
+
     return (
       <div className="animate-fade-up">
-        <LessonHeader lesson={lesson} extra={<Badge tone="neutral">Written</Badge>} />
-        <div className="mt-5">
+        <LessonHeader
+          lesson={lesson}
+          extra={<Badge tone="neutral">{comprehension ? 'Listening → writing' : 'Written'}</Badge>}
+        />
+
+        <TaskSource source={quiz.source} />
+
+        {quiz.prompt?.question && (
+          <div className="mt-4">
+            <p className="font-display text-lg font-semibold text-fg">{quiz.prompt.question}</p>
+            {quiz.prompt.questionGloss && (
+              <p className="mt-1 text-sm italic text-muted">{quiz.prompt.questionGloss}</p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4">
           <WritingTask
             prompt={quiz.prompt}
             value={writing}
@@ -259,22 +364,50 @@ function QuizLesson({ lesson, course, onComplete }) {
         <Button
           className="mt-5"
           disabled={writing.trim().length < 8}
-          onClick={() => onComplete({ writingResponse: writing, needsReview: true })}
+          onClick={() =>
+            onComplete({
+              writingResponse: writing,
+              basis: quiz.basis,
+              sourceId: quiz.source?.conversationId ?? quiz.source?.lessonId ?? null,
+              needsReview: true,
+            })
+          }
         >
           Submit for feedback
         </Button>
         <p className="mt-2 text-2xs text-muted">
-          Checked by a language model, then confirmed by your teacher.
+          {comprehension
+            ? 'Marked on two things: whether you understood the conversation, and how you wrote it. Only the second can move your level.'
+            : 'Checked by a language model, then confirmed by your teacher.'}
         </p>
       </div>
     );
   }
 
   if (quiz?.mode === QUIZ_MODES.SPEAK) {
+    const fromReading = quiz.basis === TASK_BASIS.READING;
+
     return (
       <div className="animate-fade-up">
-        <LessonHeader lesson={lesson} extra={<Badge tone="neutral">Spoken</Badge>} />
-        <div className="mt-5">
+        <LessonHeader
+          lesson={lesson}
+          extra={<Badge tone="neutral">{fromReading ? 'Reading → speaking' : 'Spoken'}</Badge>}
+        />
+
+        <TaskSource source={quiz.source} />
+
+        {quiz.prompt?.guidingQuestions?.length > 0 && (
+          <ul className="mt-4 space-y-1.5">
+            {quiz.prompt.guidingQuestions.map((question) => (
+              <li key={question} className="flex gap-2.5 text-sm text-muted">
+                <span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+                {question}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-4">
           <SpeakingTask
             prompt={quiz.prompt}
             recording={recording}
@@ -286,7 +419,14 @@ function QuizLesson({ lesson, course, onComplete }) {
         <Button
           className="mt-5"
           disabled={!recording}
-          onClick={() => onComplete({ recording, needsReview: true })}
+          onClick={() =>
+            onComplete({
+              recording,
+              basis: quiz.basis,
+              sourceId: quiz.source?.passageId ?? quiz.source?.lessonId ?? null,
+              needsReview: true,
+            })
+          }
         >
           Submit recording
         </Button>

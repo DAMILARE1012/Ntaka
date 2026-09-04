@@ -1,8 +1,9 @@
 /**
- * POST /assess-writing    { languageId, prompt, response }        -> verdict | null
- * POST /assess-speaking   { languageId, promptId, audio, target } -> signals | null
+ * POST /assess-writing        { languageId, prompt, response }         -> verdict | null
+ * POST /assess-comprehension  { languageId, source, question, answer } -> verdict | null
+ * POST /assess-speaking       { languageId, promptId, audio, target }  -> signals | null
  *
- * Groq-backed assessment for the placement test.
+ * Groq-backed assessment for the placement test and for Interactive Learning.
  *
  * ─────────────────────────────────────────────────────────────────────────────
  *  GROQ_API_KEY IS SERVER-ONLY
@@ -47,8 +48,10 @@ import {
   WHISPER_LANGUAGES,
   isTranscribable,
   buildWritingPrompt,
+  buildComprehensionPrompt,
   buildSpeakingPrompt,
   parseWritingVerdict,
+  parseComprehensionVerdict,
   parseSpeakingVerdict,
   readAloudSimilarity,
 } from '../src/lib/groqAssessment.js';
@@ -114,6 +117,57 @@ export function createWritingAssessor({ apiKey, model = GROQ_MODELS.chat }) {
     });
 
     return parseWritingVerdict(messageContent(completion));
+  };
+}
+
+/* ------------------------------------------------------------- comprehension */
+
+/**
+ * Marks a written answer about a conversation the learner listened to, or a passage they
+ * read. Used by Interactive Learning after every listening and reading lesson.
+ *
+ * Two guards worth keeping. Without marking points there is nothing objective to mark
+ * against, so this returns null rather than letting the model invent a rubric. And the
+ * comprehension half never touches the learner's CEFR level: understanding a dialogue is
+ * evidence about listening, not about the writing that a level describes.
+ */
+export function createComprehensionAssessor({ apiKey, model = GROQ_MODELS.chat }) {
+  return async function assessComprehension({
+    languageName,
+    sourceKind,
+    sourceTranscript,
+    question,
+    expectedPoints,
+    response,
+  }) {
+    if (!apiKey) return null;
+
+    const text = String(response ?? '').trim();
+    if (text.length < 8) return null;
+    if (!sourceTranscript || !Array.isArray(expectedPoints) || expectedPoints.length === 0) {
+      return null;
+    }
+
+    const completion = await groq('/chat/completions', {
+      apiKey,
+      body: {
+        model,
+        messages: buildComprehensionPrompt({
+          languageName,
+          sourceKind,
+          sourceTranscript,
+          question,
+          expectedPoints,
+          response: text,
+        }),
+        // Deterministic: the same answer must not score differently on a retry.
+        temperature: 0,
+        max_tokens: 600,
+        response_format: { type: 'json_object' },
+      },
+    });
+
+    return parseComprehensionVerdict(messageContent(completion), expectedPoints);
   };
 }
 
