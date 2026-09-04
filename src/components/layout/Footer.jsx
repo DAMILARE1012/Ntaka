@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Logo from '@/components/layout/Logo';
 import { LANGUAGES_FULL } from '@/services/mock/catalog';
 import Flag from '@/components/common/Flag';
+import Compliance from '@/components/layout/Compliance';
 
 const COLUMNS = [
   {
@@ -9,7 +10,7 @@ const COLUMNS = [
     links: [
       { label: '1-on-1 lessons', to: '/teachers' },
       { label: 'Group classes', to: '/classes' },
-      { label: 'Video learning', to: '/video-learning' },
+      { label: 'Interactive learning', to: '/interactive-learning' },
       { label: 'Free placement test', to: '/placement-test' },
       { label: 'All languages', to: '/languages' },
     ],
@@ -19,7 +20,7 @@ const COLUMNS = [
     links: [
       { label: 'Become a teacher', to: '/teachers' },
       { label: 'Teacher handbook', to: '/teachers' },
-      { label: 'Record a course', to: '/video-learning' },
+      { label: 'Record a course', to: '/interactive-learning' },
       { label: 'Community guidelines', to: '/languages' },
     ],
   },
@@ -27,11 +28,20 @@ const COLUMNS = [
     title: 'Ntaka',
     links: [
       { label: 'Our mission', to: '/' },
+      { label: 'Partners', to: '/partners' },
       { label: 'How levels work', to: '/placement-test' },
-      { label: 'Help centre', to: '/' },
+      { label: 'FAQ', to: '/faq' },
       { label: 'Contact', to: '/' },
     ],
   },
+];
+
+/* Real pages now, not placeholders - the compliance strip above them makes claims that
+   have to be readable somewhere. */
+const LEGAL_LINKS = [
+  { to: '/privacy', label: 'Privacy' },
+  { to: '/terms', label: 'Terms' },
+  { to: '/cookies', label: 'Cookies' },
 ];
 
 export default function Footer() {
@@ -91,13 +101,17 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <Compliance />
+
+        <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Ntaka. Built for African languages.</p>
-          <p className="flex gap-5">
-            <span>Privacy</span>
-            <span>Terms</span>
-            <span>Cookies</span>
-          </p>
+          <nav className="flex flex-wrap gap-5" aria-label="Legal">
+            {LEGAL_LINKS.map((link) => (
+              <Link key={link.to} to={link.to} className="transition-colors hover:text-brand">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>

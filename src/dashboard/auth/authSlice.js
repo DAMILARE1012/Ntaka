@@ -11,7 +11,7 @@ const STORAGE_KEY = 'ntaka.session.v1';
  * on every request. A tampered localStorage entry gets you a dashboard shell and
  * nothing else, because no data comes from it.
  */
-function restore() {
+export function restoreSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -26,7 +26,7 @@ function restore() {
   }
 }
 
-const restored = restore();
+const restored = restoreSession();
 
 const initialState = {
   session: restored,

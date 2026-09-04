@@ -16,7 +16,7 @@ export default function CourseCard({ course }) {
 
   return (
     <article className="surface-card flex h-full flex-col overflow-hidden transition-shadow hover:shadow-lift">
-      <Link to={`/video-learning/${course.id}`} className="block">
+      <Link to={`/interactive-learning/${course.id}`} className="block">
         <VideoThumb
           seed={course.id}
           label={course.languageName}
@@ -33,7 +33,7 @@ export default function CourseCard({ course }) {
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <Link
-            to={`/video-learning/${course.id}`}
+            to={`/interactive-learning/${course.id}`}
             className="font-display text-base font-semibold leading-snug text-fg hover:text-brand"
           >
             {course.title}

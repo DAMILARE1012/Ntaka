@@ -17,7 +17,7 @@ export const SITE = {
   ogImage: '/og-default.jpg',
   tagline: 'Learn African languages online with native teachers',
   description:
-    'Learn Yoruba, Igbo, Hausa, Swahili, Amharic, Zulu and 19 more African languages with native teachers. Live lessons, group classes and video courses.',
+    'Learn Yoruba, Igbo, Hausa, Swahili, Amharic, Zulu and 19 more African languages with native teachers. Live lessons, group classes and interactive courses.',
 };
 
 export const absolute = (path = '/') =>
@@ -60,7 +60,7 @@ export const homeSeo = () => ({
 export const languageSeo = (language) => ({
   title: title(`Learn ${language.name} Online — ${language.teacherCount} Native Teachers`),
   description: description(
-    `Learn ${language.name} with ${language.teacherCount} native teachers from ${language.country}. 1-on-1 lessons, live group classes and video courses, A1 to C2. Free placement test.`,
+    `Learn ${language.name} with ${language.teacherCount} native teachers from ${language.country}. 1-on-1 lessons, live group classes and interactive courses, A1 to C2. Free placement test.`,
   ),
   path: `/languages/${language.id}`,
   keywords: [
@@ -86,7 +86,7 @@ export const courseSeo = (course) => ({
   description: description(
     `${course.promise} A self-paced ${course.languageName} course at ${course.level}: ${course.lessonCount} video lessons, lifetime access. ${course.isFree ? 'Free to start.' : `$${course.price}.`}`,
   ),
-  path: `/video-learning/${course.id}`,
+  path: `/interactive-learning/${course.id}`,
 });
 
 export const classSeo = (item) => ({
@@ -113,11 +113,11 @@ export const STATIC_SEO = {
     path: '/classes',
   },
   videoLearning: {
-    title: title('Self-Paced African Language Video Courses'),
+    title: title('Interactive African Language Courses'),
     description: description(
-      'On-demand video courses in Yoruba, Igbo, Hausa, Swahili and more, recorded by native teachers. Learn at your own pace with phrase sheets, quizzes and lifetime access. Free courses available.',
+      'On-demand interactive courses in Yoruba, Igbo, Hausa, Swahili and more, recorded by native teachers. Learn at your own pace with phrase sheets, quizzes and lifetime access. Free courses available.',
     ),
-    path: '/video-learning',
+    path: '/interactive-learning',
   },
   languages: {
     title: title('African Languages You Can Learn Online'),
@@ -126,12 +126,47 @@ export const STATIC_SEO = {
     ),
     path: '/languages',
   },
+  partners: {
+    title: title('Partners — Cultural Bodies and Associations'),
+    description: description(
+      'Ntaka works with cultural ministries, community associations and educators across Africa to teach African languages properly online.',
+    ),
+    path: '/partners',
+  },
   placement: {
     title: title('Free CEFR Placement Test for African Languages'),
     description: description(
       'Free six-minute placement test in Yoruba, Igbo, Hausa, Swahili, Zulu, Twi, Wolof and Amharic. Get your CEFR level, A1 to C2, plus what to study next. No account needed.',
     ),
     path: '/placement-test',
+  },
+  faq: {
+    title: title('Ntaka FAQ — Learning African Languages Online'),
+    description: description(
+      'Answers on placement tests, 1-on-1 lessons, group classes, interactive courses, pricing, certificates and how your data is handled at Ntaka.',
+    ),
+    path: '/faq',
+  },
+  privacy: {
+    title: title('Privacy Policy'),
+    description: description(
+      'How Ntaka collects, uses and protects learner data — including exactly what happens to placement test voice recordings, and every service provider involved.',
+    ),
+    path: '/privacy',
+  },
+  terms: {
+    title: title('Terms of Service'),
+    description: description(
+      'The terms for using Ntaka: accounts, the placement test, bookings and cancellations, payments, certificates and teaching on the platform.',
+    ),
+    path: '/terms',
+  },
+  cookies: {
+    title: title('Cookies and Browser Storage'),
+    description: description(
+      'Ntaka sets no advertising cookies and no tracking pixels. The complete list of what we store in your browser, and how to clear it.',
+    ),
+    path: '/cookies',
   },
   notFound: {
     title: title('Page not found'),

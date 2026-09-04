@@ -200,7 +200,7 @@ export function readClass(id) {
   };
 }
 
-/* ------------------------------------------------------------ video courses */
+/* ------------------------------------------------------------ interactive courses */
 
 const VIDEO_SORTS = {
   popular: (a, b) => b.enrolled - a.enrolled,

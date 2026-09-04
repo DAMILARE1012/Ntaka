@@ -6,7 +6,7 @@ import ThemeToggle from '@/components/layout/ThemeToggle';
 const PROOF = [
   'Free placement test, no card needed',
   'Native teachers across 14 countries',
-  'Live lessons, group classes and video courses',
+  'Live lessons, group classes and interactive courses',
 ];
 
 /**

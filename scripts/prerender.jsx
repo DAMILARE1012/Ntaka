@@ -78,7 +78,7 @@ const routes = [
     preload: (store) => [ep.getClasses.initiate(store.getState().classes)],
   },
   {
-    url: '/video-learning',
+    url: '/interactive-learning',
     priority: '0.9',
     changefreq: 'weekly',
     preload: (store) => [ep.getCourses.initiate(store.getState().videos)],
@@ -90,6 +90,11 @@ const routes = [
     preload: () => [ep.getLanguages.initiate({ q: '', region: '' })],
   },
   { url: '/placement-test', priority: '0.9', changefreq: 'monthly', preload: () => [] },
+  { url: '/partners', priority: '0.6', changefreq: 'monthly', preload: () => [] },
+  { url: '/faq', priority: '0.7', changefreq: 'monthly', preload: () => [] },
+  { url: '/privacy', priority: '0.3', changefreq: 'yearly', preload: () => [] },
+  { url: '/terms', priority: '0.3', changefreq: 'yearly', preload: () => [] },
+  { url: '/cookies', priority: '0.3', changefreq: 'yearly', preload: () => [] },
 
   // Auth screens are prerendered so they paint instantly, but they carry noindex and
   // are kept out of the sitemap. /dashboard is never prerendered at all: it is private,
@@ -117,7 +122,7 @@ const routes = [
   })),
 
   ...courses.map((course) => ({
-    url: `/video-learning/${course.id}`,
+    url: `/interactive-learning/${course.id}`,
     priority: '0.7',
     changefreq: 'monthly',
     preload: () => [ep.getCourse.initiate(course.id)],

@@ -15,8 +15,6 @@ import TeacherMiniCard from '@/features/teachers/components/TeacherMiniCard';
 import ClassCard from '@/features/classes/components/ClassCard';
 import CourseCard from '@/features/videos/components/CourseCard';
 import LanguageCard from '@/features/languages/components/LanguageCard';
-import { useAppSelector } from '@/app/hooks';
-import { selectLevelFor } from '@/features/learner/learnerSlice';
 import { formatCompact } from '@/lib/format';
 import Flag from '@/components/common/Flag';
 import Seo from '@/components/common/Seo';
@@ -26,7 +24,6 @@ import { graph, languagePage, breadcrumbs } from '@/lib/structuredData';
 export default function LanguageDetailPage() {
   const { languageId } = useParams();
   const { data: language, isLoading, isError, refetch } = useGetLanguageQuery(languageId);
-  const placedLevel = useAppSelector(selectLevelFor(languageId));
 
   const { data: teachers } = useGetTeachersQuery({ languageId, pageSize: 3 }, { skip: !language });
   const { data: classes } = useGetClassesQuery({ languageId, pageSize: 2 }, { skip: !language });
@@ -116,7 +113,7 @@ export default function LanguageDetailPage() {
                 { label: 'Speakers', value: formatCompact(language.speakers) },
                 { label: 'Teachers', value: language.teacherCount },
                 { label: 'Group classes', value: language.classCount },
-                { label: 'Video courses', value: language.courseCount },
+                { label: 'Interactive courses', value: language.courseCount },
               ].map((stat) => (
                 <div key={stat.label}>
                   <dt className="text-xs text-faint">{stat.label}</dt>
@@ -154,15 +151,15 @@ export default function LanguageDetailPage() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold">
-              {placedLevel ? `You are placed at ${placedLevel}` : 'Where would you start?'}
-            </h2>
+            {/* No `current` here on purpose - a placement result is profile data, and
+                this page is public and prerendered. The learner sees their own level on
+                their dashboard. */}
+            <h2 className="text-xl font-semibold">Where would you start?</h2>
             <p className="mt-2 text-muted">
-              {placedLevel
-                ? 'Teachers, classes and courses below can all be filtered to your level.'
-                : `Take the free placement check and we will tell you which of the six CEFR levels to begin ${language.name} at.`}
+              Take the free placement test and we will tell you which of the six CEFR levels to
+              begin {language.name} at.
             </p>
-            <LevelLadder current={placedLevel} className="mt-5" compact />
+            <LevelLadder className="mt-5" compact />
           </div>
         </div>
       </section>
@@ -216,10 +213,10 @@ export default function LanguageDetailPage() {
         <section className="bg-surface py-14">
           <div className="container">
             <SectionHeading
-              eyebrow="Video learning"
+              eyebrow="Interactive learning"
               title={`Self-paced ${language.name} courses`}
               action={
-                <Button to={`/video-learning?language=${language.id}`} variant="outline">
+                <Button to={`/interactive-learning?language=${language.id}`} variant="outline">
                   See all
                   <Icon name="arrowRight" className="h-4 w-4" />
                 </Button>

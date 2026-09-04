@@ -10,6 +10,10 @@ import MyLessons from '@/dashboard/learner/MyLessons';
 import SchedulePage from '@/dashboard/teacher/SchedulePage';
 import AvailabilityEditor from '@/dashboard/teacher/AvailabilityEditor';
 import LessonRoom from '@/dashboard/lesson/LessonRoom';
+import PlacementPage from '@/dashboard/placement/PlacementPage';
+import TestHistory from '@/dashboard/placement/TestHistory';
+import CoursePlayer from '@/dashboard/learning/CoursePlayer';
+import MyCourses from '@/dashboard/learning/MyCourses';
 import RequireAuth from '@/dashboard/auth/RequireAuth';
 import { PageTitle, ComingSoon } from '@/dashboard/components/Panel';
 
@@ -32,7 +36,13 @@ export default function DashboardRoutes() {
         <Route index element={<RoleOverview />} />
 
         {/* learner */}
+        <Route path="placement" element={<PlacementPage />} />
+        <Route path="placement/history" element={<TestHistory />} />
         <Route path="lessons" element={<MyLessons />} />
+
+        {/* Interactive Learning player. Enrolment happens on arrival. */}
+        <Route path="courses" element={<MyCourses />} />
+        <Route path="learn/:courseId" element={<CoursePlayer />} />
 
         {/* The room itself. Open to whichever of the two people booked it - the guard
             inside re-checks participation, and the server checks it again. */}

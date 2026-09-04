@@ -3,9 +3,9 @@ import { LANGUAGES_FULL } from '@/services/mock/catalog';
 import { TEACHERS } from '@/services/mock/teachers';
 
 /**
- * Video Learning = self-paced, on-demand video courses.
+ * Interactive Learning = self-paced, on-demand interactive courses.
  * (Industry term: "self-paced video course" / "on-demand course". Ntaka surfaces it as
- * "Video Learning" in navigation and "self-paced course" in body copy.)
+ * "Interactive Learning" in navigation and "self-paced course" in body copy.)
  */
 
 export const VIDEO_TRACKS = [

@@ -15,13 +15,14 @@ export const NAV_BY_ROLE = {
         { to: '/dashboard', label: 'Overview', icon: 'compass', end: true },
         { to: '/dashboard/lessons', label: 'My lessons', icon: 'calendar' },
         { to: '/dashboard/classes', label: 'My classes', icon: 'users', soon: true },
-        { to: '/dashboard/courses', label: 'My courses', icon: 'video', soon: true },
+        { to: '/dashboard/courses', label: 'My courses', icon: 'video' },
       ],
     },
     {
       heading: 'Progress',
       items: [
-        { to: '/dashboard/level', label: 'My level', icon: 'target', soon: true },
+        { to: '/dashboard/placement', label: 'Placement test', icon: 'target', end: true },
+        { to: '/dashboard/placement/history', label: 'Test history', icon: 'clock' },
         { to: '/dashboard/certificates', label: 'Certificates', icon: 'certificate', soon: true },
       ],
     },
@@ -48,7 +49,7 @@ export const NAV_BY_ROLE = {
       heading: 'Content',
       items: [
         { to: '/dashboard/my-classes', label: 'Group classes', icon: 'users', soon: true },
-        { to: '/dashboard/my-courses', label: 'Video courses', icon: 'video', soon: true },
+        { to: '/dashboard/my-courses', label: 'Interactive courses', icon: 'video', soon: true },
       ],
     },
     {

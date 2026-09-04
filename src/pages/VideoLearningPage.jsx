@@ -30,17 +30,17 @@ export default function VideoLearningPage() {
       <Seo
         {...STATIC_SEO.videoLearning}
         jsonLd={graph(
-          collectionPage({ ...STATIC_SEO.videoLearning, itemType: 'Video courses' }),
+          collectionPage({ ...STATIC_SEO.videoLearning, itemType: 'Interactive courses' }),
           breadcrumbs([
             { name: 'Home', path: '/' },
-            { name: 'Video learning', path: '/video-learning' },
+            { name: 'Interactive learning', path: '/interactive-learning' },
           ]),
         )}
       />
 
       <PageHeader
-        eyebrow="Video learning"
-        title="Self-paced video courses"
+        eyebrow="Interactive learning"
+        title="Self-paced interactive courses"
         description="Recorded by the same teachers who take live lessons. Work through a course on your own time, then bring your questions to a 1-on-1 or a group class."
       >
         <div className="mt-8 grid gap-4 sm:grid-cols-3">

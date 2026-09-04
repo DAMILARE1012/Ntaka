@@ -22,9 +22,9 @@ const OFFERINGS = [
     cta: 'View all classes',
   },
   {
-    to: '/video-learning',
+    to: '/interactive-learning',
     icon: 'video',
-    label: 'Video learning',
+    label: 'Interactive learning',
     tone: 'from-leaf-400 to-leaf-600',
     body: 'Recorded by our teachers. Watch, repeat, keep forever.',
     points: ['On demand, lifetime access', 'Phrase sheets and quizzes', 'Free courses in every language'],

@@ -168,7 +168,7 @@ export default function TeacherProfilePage() {
 
           {teacher.courses?.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold">Video courses</h2>
+              <h2 className="text-lg font-semibold">Interactive courses</h2>
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 {teacher.courses.map((course) => (
                   <CourseCard key={course.id} course={{ ...course, teacher }} />

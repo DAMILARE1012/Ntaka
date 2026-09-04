@@ -179,6 +179,12 @@
   }
 
   /* Stop on hover, and whenever a link inside has keyboard focus. */
+  /* Second direction, so two marquees on one page do not slide in lockstep. The
+     track starts shifted and travels back, which is the same seam maths mirrored. */
+  .marquee-track--reverse {
+    animation-name: ntaka-marquee-reverse;
+  }
+
   .marquee-viewport:hover .marquee-track,
   .marquee-viewport:focus-within .marquee-track {
     animation-play-state: paused;
@@ -231,5 +237,14 @@
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+@keyframes ntaka-marquee-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
   }
 }

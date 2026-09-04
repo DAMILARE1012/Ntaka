@@ -41,7 +41,7 @@ export function UpcomingClasses() {
   );
 }
 
-/** Most popular self-paced video courses. */
+/** Most popular self-paced interactive courses. */
 export function PopularCourses() {
   const { data, isFetching } = useGetCoursesQuery({ sort: 'popular', pageSize: 3 });
 
@@ -49,12 +49,12 @@ export function PopularCourses() {
     <section className="bg-surface py-14 md:py-16">
       <div className="container">
         <SectionHeading
-          eyebrow="Video learning"
+          eyebrow="Interactive learning"
           title="Learn at your own pace"
           description="Structured like a syllabus. Short enough for a commute."
           action={
-            <Button to="/video-learning" variant="outline">
-              All video courses
+            <Button to="/interactive-learning" variant="outline">
+              All interactive courses
               <Icon name="arrowRight" className="h-4 w-4" />
             </Button>
           }

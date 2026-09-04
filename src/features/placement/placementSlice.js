@@ -2,14 +2,24 @@ import { createSlice } from '@reduxjs/toolkit';
 
 /**
  * Wizard state for the free placement check.
- * Stage order: language -> background -> questions (quiz or self-assessment) -> result.
+ *
+ * Stage order:
+ *   language -> background -> quiz -> writing -> speaking -> self -> result
+ *
+ * Speaking and writing may be skipped: a learner on a locked-down machine with no
+ * microphone must still be able to finish, and a partial result with a stated confidence
+ * is worth more than no result at all.
  */
 const initialState = {
   stage: 'language',
   languageId: '',
-  cursor: 0, // index within the current stage's question list
+  cursor: 0, // index within the current stage's list
   background: {},
   answers: {},
+  writingResponse: '',
+  /** promptId -> { promptId, durationMs, url, size } */
+  recordings: {},
+  skipped: [],
   selfChecked: [],
   result: null,
 };
@@ -24,6 +34,9 @@ const placementSlice = createSlice({
       state.cursor = 0;
       state.background = {};
       state.answers = {};
+      state.writingResponse = '';
+      state.recordings = {};
+      state.skipped = [];
       state.selfChecked = [];
       state.result = null;
     },
@@ -32,6 +45,16 @@ const placementSlice = createSlice({
     },
     answerQuestion(state, { payload: { questionId, optionId } }) {
       state.answers[questionId] = optionId;
+    },
+    setWriting(state, { payload }) {
+      state.writingResponse = payload;
+    },
+    setRecording(state, { payload: { promptId, recording } }) {
+      if (recording) state.recordings[promptId] = recording;
+      else delete state.recordings[promptId];
+    },
+    skipTask(state, { payload }) {
+      if (!state.skipped.includes(payload)) state.skipped.push(payload);
     },
     toggleSelfStatement(state, { payload }) {
       state.selfChecked = state.selfChecked.includes(payload)
@@ -65,6 +88,9 @@ export const {
   chooseLanguage,
   answerBackground,
   answerQuestion,
+  setWriting,
+  setRecording,
+  skipTask,
   toggleSelfStatement,
   goToStage,
   next,

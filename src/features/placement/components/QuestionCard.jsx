@@ -1,4 +1,3 @@
-import Icon from '@/components/ui/Icon';
 import LevelBadge from '@/components/common/LevelBadge';
 import { cx } from '@/lib/format';
 
@@ -32,27 +31,13 @@ export default function QuestionCard({
               onClick={() => onAnswer(option.id)}
               aria-pressed={selected}
               className={cx(
-                'flex items-center gap-3.5 rounded-2xl border p-4 text-left transition-all',
+                'rounded-xl border px-4 py-3.5 text-left transition-all',
                 selected
-                  ? 'border-brand bg-brand-soft ring-1 ring-brand-border'
+                  ? 'border-brand bg-brand-soft font-semibold ring-1 ring-brand-border'
                   : 'border-line bg-surface hover:border-line-strong hover:bg-subtle',
               )}
             >
-              <span
-                className={cx(
-                  'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
-                  selected
-                    ? 'border-brand bg-brand text-brand-fg'
-                    : 'border-line-strong text-muted',
-                )}
-              >
-                {selected ? (
-                  <Icon name="check" className="h-3.5 w-3.5" strokeWidth={3} />
-                ) : (
-                  option.id.toUpperCase()
-                )}
-              </span>
-              <span className="text-md font-semibold text-fg">{option.label}</span>
+              <span className="text-md font-medium text-fg">{option.label}</span>
             </button>
           );
         })}

@@ -8,12 +8,15 @@ import { cx } from '@/lib/format';
 import { useAppSelector } from '@/app/hooks';
 import { selectIsSignedIn, selectUser } from '@/dashboard/auth/authSlice';
 import Avatar from '@/components/ui/Avatar';
+import LearnMenu, { LEARN_MODES } from '@/components/layout/LearnMenu';
 
+/** The three ways to learn live under one "Learn" menu; everything else is flat. */
 export const NAV_LINKS = [
-  { to: '/teachers', label: '1-on-1 Lessons' },
-  { to: '/classes', label: 'Group Classes' },
-  { to: '/video-learning', label: 'Video Learning' },
   { to: '/languages', label: 'Languages' },
+  // Points at the homepage band rather than the sub-page: someone clicking "Partners"
+  // in the nav wants a glance, and the band's own link takes them to the full list.
+  { to: '/#partners', label: 'Partners' },
+  { to: '/faq', label: 'FAQ' },
 ];
 
 export default function Navbar() {
@@ -49,6 +52,7 @@ export default function Navbar() {
         <div className="flex items-center gap-7">
           <Logo />
           <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main">
+            <LearnMenu />
             {NAV_LINKS.map((link) => (
               <NavLink key={link.to} to={link.to} className={linkClasses}>
                 {({ isActive }) => (
@@ -108,6 +112,26 @@ export default function Navbar() {
       {open && (
         <div className="animate-fade-in border-t border-line bg-bg lg:hidden">
           <nav className="container flex flex-col gap-0.5 py-3" aria-label="Mobile">
+            <p className="px-3 pb-1 pt-2 text-2xs font-semibold uppercase tracking-[0.14em] text-faint">
+              Learn
+            </p>
+            {LEARN_MODES.map((mode) => (
+              <NavLink
+                key={mode.to}
+                to={mode.to}
+                className={({ isActive }) =>
+                  cx(
+                    'rounded-lg px-3 py-2.5 text-sm font-medium',
+                    isActive ? 'bg-brand-soft text-brand' : 'text-muted',
+                  )
+                }
+              >
+                {mode.label}
+              </NavLink>
+            ))}
+            <p className="px-3 pb-1 pt-3 text-2xs font-semibold uppercase tracking-[0.14em] text-faint">
+              Explore
+            </p>
             {NAV_LINKS.map((link) => (
               <NavLink
                 key={link.to}

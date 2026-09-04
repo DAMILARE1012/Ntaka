@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetPlacementTestQuery, useSubmitPlacementMutation } from '@/services/api';
 import Button from '@/components/ui/Button';
@@ -6,14 +7,22 @@ import Icon from '@/components/ui/Icon';
 import Skeleton from '@/components/ui/Skeleton';
 import LanguagePicker from '@/features/placement/components/LanguagePicker';
 import QuestionCard from '@/features/placement/components/QuestionCard';
+import WritingTask from '@/features/placement/components/WritingTask';
+import SpeakingTask from '@/features/placement/components/SpeakingTask';
 import SelfAssessment from '@/features/placement/components/SelfAssessment';
 import PlacementResult from '@/features/placement/components/PlacementResult';
+import PlacementProgress from '@/features/placement/components/PlacementProgress';
+import { isTranscribable } from '@/lib/groqAssessment';
 import { recordPlacement } from '@/features/learner/learnerSlice';
+import { selectUser } from '@/dashboard/auth/authSlice';
 import {
   selectPlacement,
   chooseLanguage,
   answerBackground,
   answerQuestion,
+  setWriting,
+  setRecording,
+  skipTask,
   toggleSelfStatement,
   goToStage,
   next,
@@ -21,54 +30,87 @@ import {
   setResult,
   restart,
 } from '@/features/placement/placementSlice';
-import { cx } from '@/lib/format';
-
-const STAGE_ORDER = ['language', 'background', 'quiz', 'self', 'result'];
-
-function ProgressBar({ stage, cursor, totalInStage }) {
-  const stageIdx = STAGE_ORDER.indexOf(stage);
-  const withinStage = totalInStage ? (cursor + 1) / totalInStage : 1;
-  const pct = Math.min(100, ((stageIdx + withinStage) / STAGE_ORDER.length) * 100);
-
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
-      <div
-        className="h-full rounded-full bg-brand transition-[width] duration-300"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
 
 /**
- * Orchestrates the free placement check.
- * The slice holds the answers; this component only decides which step to render next.
+ * The placement check.
+ *
+ * Six stages: language, background, vocabulary, writing, speaking, self-check. Writing
+ * and speaking are skippable by design — a learner on a machine with no microphone must
+ * still be able to finish, and a partial result with an honest confidence beats no result.
  */
+const STAGES = ['language', 'background', 'quiz', 'writing', 'speaking', 'self'];
+
 export default function PlacementWizard() {
   const dispatch = useAppDispatch();
+  const [params] = useSearchParams();
+  const user = useAppSelector(selectUser);
   const state = useAppSelector(selectPlacement);
-  const { stage, languageId, cursor, background, answers, selfChecked, result } = state;
+  const {
+    stage,
+    languageId,
+    cursor,
+    background,
+    answers,
+    writingResponse,
+    recordings,
+    selfChecked,
+    skipped,
+    result,
+  } = state;
 
   const { data: test, isFetching } = useGetPlacementTestQuery(languageId, { skip: !languageId });
   const [submit, { isLoading: isSubmitting }] = useSubmitPlacementMutation();
 
-  // Languages without a graded bank skip straight to the self-assessment.
+  // Arriving from a gate: the language is already known, so skip choosing it.
+  const requestedLanguage = params.get('language');
+  const returnTo = params.get('returnTo');
+
+  useEffect(() => {
+    if (stage === 'language' && requestedLanguage && requestedLanguage !== languageId) {
+      dispatch(chooseLanguage(requestedLanguage));
+    }
+  }, [stage, requestedLanguage, languageId, dispatch]);
+
+  // Languages without a graded bank have nothing to show at the quiz stage.
   useEffect(() => {
     if (stage === 'quiz' && test && test.mode === 'self') {
-      dispatch(goToStage('self'));
+      dispatch(goToStage('writing'));
     }
   }, [stage, test, dispatch]);
 
   const finish = async () => {
-    const payload = { languageId, answers, selfChecked, background };
-    const data = await submit(payload).unwrap();
+    const data = await submit({
+      languageId,
+      answers,
+      selfChecked,
+      background,
+      writingResponse,
+      recordings: Object.values(recordings),
+    }).unwrap();
+
     dispatch(setResult(data));
-    dispatch(recordPlacement({ languageId, level: data.level, mode: data.mode }));
+    dispatch(
+      recordPlacement({
+        languageId,
+        languageName: test.languageName,
+        level: data.level,
+        mode: data.mode,
+        confidence: data.confidence,
+        skills: data.skills,
+        pendingReview: data.pendingReview,
+      }),
+    );
   };
 
   /* ------------------------------------------------------------------ result */
   if (stage === 'result' && result) {
-    return <PlacementResult result={result} onRestart={() => dispatch(restart())} />;
+    return (
+      <PlacementResult
+        result={result}
+        returnTo={returnTo}
+        onRestart={() => dispatch(restart())}
+      />
+    );
   }
 
   /* ---------------------------------------------------------------- language */
@@ -76,9 +118,9 @@ export default function PlacementWizard() {
     return (
       <div>
         <StageHeader
-          step="Step 1 of 4"
+          step="Step 1 of 6 · about 7 minutes"
           title="Which language are you placing?"
-          description="Pick a language and we will work out your CEFR level in about six minutes. No account, no card, no catch."
+          description="Pick a language and we will work out your CEFR level in about seven minutes — speaking, writing and comprehension."
         />
         <LanguagePicker onChoose={(id) => dispatch(chooseLanguage(id))} />
       </div>
@@ -92,7 +134,6 @@ export default function PlacementWizard() {
         <Skeleton className="h-9 w-full" />
         <Skeleton className="h-14 w-full" />
         <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
       </div>
     );
   }
@@ -100,19 +141,19 @@ export default function PlacementWizard() {
   /* -------------------------------------------------------------- background */
   if (stage === 'background') {
     const question = test.background[cursor];
-    const answered = Boolean(background[question.id]);
     const isLast = cursor === test.background.length - 1;
 
     return (
       <WizardFrame
-        step="Step 2 of 4"
+        step="About you"
         title={`A little about your ${test.languageName}`}
         stage={stage}
         cursor={cursor}
         total={test.background.length}
+        skipped={skipped}
         onBack={cursor === 0 ? () => dispatch(restart()) : () => dispatch(back())}
         onNext={() => (isLast ? dispatch(goToStage('quiz')) : dispatch(next()))}
-        nextDisabled={!answered}
+        nextDisabled={!background[question.id]}
         nextLabel={isLast ? 'Start the questions' : 'Next'}
       >
         <QuestionCard
@@ -128,24 +169,24 @@ export default function PlacementWizard() {
     );
   }
 
-  /* -------------------------------------------------------------------- quiz */
+  /* ------------------------------------------------------------- vocabulary */
   if (stage === 'quiz' && test.mode === 'quiz') {
     const question = test.questions[cursor];
-    const answered = Boolean(answers[question.id]);
     const isLast = cursor === test.questions.length - 1;
 
     return (
       <WizardFrame
-        step="Step 3 of 4"
-        title={`${test.languageName} placement questions`}
+        step="Vocabulary"
+        title={`${test.languageName} vocabulary and comprehension`}
         note="Guessing is fine — a wrong answer just tells us where to start."
         stage={stage}
         cursor={cursor}
         total={test.questions.length}
+        skipped={skipped}
         onBack={cursor === 0 ? () => dispatch(goToStage('background')) : () => dispatch(back())}
-        onNext={() => (isLast ? dispatch(goToStage('self')) : dispatch(next()))}
-        nextDisabled={!answered}
-        nextLabel={isLast ? 'Last step' : 'Next'}
+        onNext={() => (isLast ? dispatch(goToStage('writing')) : dispatch(next()))}
+        nextDisabled={!answers[question.id]}
+        nextLabel={isLast ? 'On to writing' : 'Next'}
       >
         <QuestionCard
           question={question}
@@ -159,15 +200,75 @@ export default function PlacementWizard() {
     );
   }
 
-  /* --------------------------------------------------------- self-assessment */
+  /* ----------------------------------------------------------------- writing */
+  if (stage === 'writing') {
+    return (
+      <WizardFrame
+        step="Writing"
+        title="Show us your writing"
+        stage={stage}
+        cursor={0}
+        total={1}
+        skipped={skipped}
+        onBack={() => dispatch(goToStage(test.mode === 'quiz' ? 'quiz' : 'background'))}
+        onNext={() => dispatch(goToStage('speaking'))}
+        nextLabel="On to speaking"
+      >
+        <WritingTask
+          prompt={test.writingPrompt}
+          value={writingResponse}
+          onChange={(value) => dispatch(setWriting(value))}
+          onSkip={() => {
+            dispatch(skipTask('writing'));
+            dispatch(goToStage('speaking'));
+          }}
+        />
+      </WizardFrame>
+    );
+  }
+
+  /* ---------------------------------------------------------------- speaking */
+  if (stage === 'speaking') {
+    const prompt = test.speakingPrompts[cursor];
+    const isLast = cursor === test.speakingPrompts.length - 1;
+
+    return (
+      <WizardFrame
+        step="Speaking"
+        title="Let us hear you"
+        stage={stage}
+        cursor={cursor}
+        total={test.speakingPrompts.length}
+        skipped={skipped}
+        onBack={cursor === 0 ? () => dispatch(goToStage('writing')) : () => dispatch(back())}
+        onNext={() => (isLast ? dispatch(goToStage('self')) : dispatch(next()))}
+        nextLabel={isLast ? 'Last step' : 'Next prompt'}
+      >
+        <SpeakingTask
+          prompt={prompt}
+          transcribable={isTranscribable(languageId)}
+          recording={recordings[prompt.id]}
+          onRecorded={(recording) => dispatch(setRecording({ promptId: prompt.id, recording }))}
+          onSkip={() => {
+            dispatch(skipTask(prompt.id));
+            if (isLast) dispatch(goToStage('self'));
+            else dispatch(next());
+          }}
+        />
+      </WizardFrame>
+    );
+  }
+
+  /* -------------------------------------------------------------- self-check */
   return (
     <WizardFrame
-      step="Step 4 of 4"
+      step="Final check"
       title="One last check"
       stage="self"
       cursor={0}
       total={1}
-      onBack={() => dispatch(goToStage(test.mode === 'quiz' ? 'quiz' : 'background'))}
+      skipped={skipped}
+      onBack={() => dispatch(goToStage('speaking'))}
       onNext={finish}
       nextDisabled={isSubmitting}
       nextLabel={isSubmitting ? 'Working it out…' : 'See my level'}
@@ -175,6 +276,7 @@ export default function PlacementWizard() {
       <SelfAssessment
         checked={selfChecked}
         onToggle={(level) => dispatch(toggleSelfStatement(level))}
+        description={`Tick every statement that is comfortably true today, ${user?.displayName?.split(' ')[0] ?? 'there'}. Be honest — it only helps us start you in the right place.`}
       />
     </WizardFrame>
   );
@@ -198,6 +300,7 @@ function WizardFrame({
   stage,
   cursor,
   total,
+  skipped = [],
   onBack,
   onNext,
   nextDisabled,
@@ -207,11 +310,16 @@ function WizardFrame({
   return (
     <div className="mx-auto max-w-2xl">
       <StageHeader step={step} title={title} note={note} />
-      <ProgressBar stage={stage} cursor={cursor} totalInStage={total} />
+      <PlacementProgress
+        stage={stage}
+        cursor={cursor}
+        totalInStage={total}
+        skipped={skipped}
+      />
 
       <div className="mt-8">{children}</div>
 
-      <div className={cx('mt-8 flex items-center justify-between gap-3')}>
+      <div className="mt-8 flex items-center justify-between gap-3">
         <Button variant="ghost" onClick={onBack}>
           <Icon name="arrowLeft" className="h-4 w-4" />
           Back

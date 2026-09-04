@@ -158,14 +158,14 @@ export default function TeacherOverview() {
             )}
           </Panel>
 
-          <Panel title="Your video courses">
+          <Panel title="Your interactive courses">
             {teacher.courses?.length ? (
               <ul className="divide-y divide-line">
                 {teacher.courses.map((course) => (
                   <li key={course.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <Icon name="video" className="h-4 w-4 shrink-0 text-faint" />
                     <Link
-                      to={`/video-learning/${course.id}`}
+                      to={`/interactive-learning/${course.id}`}
                       className="min-w-0 flex-1 truncate text-sm font-medium text-fg hover:text-brand"
                     >
                       {course.title}

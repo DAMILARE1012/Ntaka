@@ -54,7 +54,7 @@ export default function LearnerOverview() {
           placement ? (
             <Button to={`/teachers?language=${focusId}`}>Book a lesson</Button>
           ) : (
-            <Button to="/placement-test">
+            <Button to="/dashboard/placement">
               <Icon name="target" className="h-4 w-4" />
               Take the free test
             </Button>
@@ -139,7 +139,7 @@ export default function LearnerOverview() {
             title="Study between lessons"
             action={
               <Link
-                to={`/video-learning?language=${focusId}`}
+                to={`/interactive-learning?language=${focusId}`}
                 className="text-sm font-semibold text-brand hover:text-brand-hover"
               >
                 All courses
@@ -157,12 +157,12 @@ export default function LearnerOverview() {
         {!placement && (
           <Panel title="Where to begin">
             <p className="text-sm text-muted">
-              Hello {user.displayName.split(' ')[0]} — the fastest start is the placement test.
-              It takes six minutes, costs nothing, and ends with teachers and courses matched to
-              your level.
+              Hello {user.displayName.split(' ')[0]} — the placement test is the first step, not
+              an optional one. Lessons, classes and courses all unlock once we know your level,
+              which takes about seven free minutes.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button to="/placement-test" size="sm">
+              <Button to="/dashboard/placement" size="sm">
                 Take the placement test
               </Button>
               <Button to="/languages" variant="outline" size="sm">

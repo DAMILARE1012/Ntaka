@@ -1,6 +1,6 @@
 /**
  * The six CEFR levels Ntaka teaches against.
- * Teachers, group classes, video courses and placement results all speak this vocabulary.
+ * Teachers, group classes, interactive courses and placement results all speak this vocabulary.
  */
 export const CEFR_LEVELS = [
   {

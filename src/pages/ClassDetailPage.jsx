@@ -11,6 +11,8 @@ import LevelBadge from '@/components/common/LevelBadge';
 import ClassCard from '@/features/classes/components/ClassCard';
 import { getLevel } from '@/lib/cefr';
 import { formatDateTime, formatDuration, formatPrice } from '@/lib/format';
+import PlacementGate from '@/features/placement/components/PlacementGate';
+import { usePlacementGate } from '@/features/placement/usePlacementGate';
 import Flag from '@/components/common/Flag';
 import Seo from '@/components/common/Seo';
 import { classSeo } from '@/lib/seo';
@@ -19,6 +21,8 @@ import { graph, groupClass, breadcrumbs } from '@/lib/structuredData';
 export default function ClassDetailPage() {
   const { classId } = useParams();
   const { data: item, isLoading, isError, refetch } = useGetClassQuery(classId);
+  // Hook order must not depend on the fetch, so this runs before the early returns.
+  const gate = usePlacementGate(item?.languageId);
 
   if (isError) {
     return (
@@ -198,8 +202,28 @@ export default function ClassDetailPage() {
             </p>
           </div>
 
-          <Button fullWidth size="lg" className="mt-4" variant={full ? 'outline' : 'primary'}>
-            {full ? 'Join the waitlist' : 'Reserve my seat'}
+          {gate.required && (
+            <div className="mt-4">
+              <PlacementGate
+                language={{ id: item.languageId, name: item.languageName }}
+                action="reserve a seat"
+                compact
+              />
+            </div>
+          )}
+
+          <Button
+            fullWidth
+            size="lg"
+            className="mt-4"
+            variant={full ? 'outline' : 'primary'}
+            disabled={gate.required}
+          >
+            {gate.required
+              ? 'Find your level first'
+              : full
+                ? 'Join the waitlist'
+                : 'Reserve my seat'}
           </Button>
 
           <p className="mt-3 text-center text-xs text-muted">

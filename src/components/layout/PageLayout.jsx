@@ -6,11 +6,51 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 /** Scrolls to top on navigation — routers do not do this for you. */
-function ScrollToTop() {
-  const { pathname } = useLocation();
+/**
+ * Routers do not restore scroll, and they do not honour a hash on navigation either.
+ *
+ * A link to /#partners has to work from two places: from another page, where React has
+ * to mount the homepage before the target exists, and from the homepage itself, where
+ * only the hash changes and no re-render is guaranteed. Hence the rAF - it waits for the
+ * paint that puts the section in the document before looking for it.
+ */
+function ScrollManager() {
+  // `key` changes on every navigation, including a push to the URL you are already on.
+  // Without it, scrolling away and clicking the same nav link again would do nothing,
+  // because neither pathname nor hash changed.
+  const { pathname, hash, key } = useLocation();
+
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'auto' : 'auto' });
-  }, [pathname]);
+    if (!hash) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return undefined;
+    }
+
+    // A hash from a URL is untrusted input; an invalid one would throw out of querySelector.
+    const find = () => {
+      try {
+        return document.querySelector(hash);
+      } catch {
+        return null;
+      }
+    };
+
+    let frame = requestAnimationFrame(() => {
+      const target = find();
+      if (target) {
+        // scroll-mt-* on the target keeps it clear of the sticky header.
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Second chance for anything that mounts a frame late.
+        frame = requestAnimationFrame(() => {
+          find()?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [pathname, hash, key]);
+
   return null;
 }
 
@@ -24,7 +64,7 @@ export default function PageLayout({ children }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <ScrollToTop />
+      <ScrollManager />
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />

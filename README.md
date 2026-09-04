@@ -27,11 +27,12 @@ VITE_SITE_URL=https://your-domain.com npm run build:static
 | Feature | Route | Notes |
 | --- | --- | --- |
 | Homepage | `/` | Hero, language rail, placement band, the three ways to learn, teacher/class/course rails, learner stories |
-| **Free placement test** | `/placement-test` | Language → background → graded quiz (or CEFR self-check) → level + what to do next |
+| **Free placement test** | `/placement-test` (landing) · `/dashboard/placement` (test) | Speaking, writing and vocabulary across six stages → CEFR level + what to do next |
 | 1-on-1 lessons | `/teachers`, `/teachers/:id` | Rating, rate, specialities and a live 7-day availability grid on every card |
 | Group classes | `/classes`, `/classes/:id` | Level, topic, teacher rating, schedule and a seat meter |
-| Video learning | `/video-learning`, `/video-learning/:id` | Self-paced on-demand courses with a module/lesson curriculum |
+| Interactive learning | `/interactive-learning`, `/interactive-learning/:id` | Self-paced on-demand courses with a module/lesson curriculum |
 | Language catalogue | `/languages`, `/languages/:id` | 25 languages across 14 countries, grouped by region |
+| Partners | `/partners` | Cultural bodies and associations, grouped by kind |
 
 ### "Video Learning" — the term
 
@@ -55,7 +56,118 @@ everywhere:
 
 ### The free placement test
 
-Two routes, one result shape:
+**Four skills, and the code is explicit about which it can honestly grade.**
+
+| Skill | Scored? |
+| --- | --- |
+| Vocabulary & comprehension | **Yes** — multiple choice, one right answer, weighted by level |
+| Writing | **Partially** — length, sentences, diacritics, expected-vocabulary overlap. Capped at B1 |
+| Speaking | **No** — audio is captured for a teacher to hear, never machine-graded |
+| CEFR self-check | Self-reported, used only to adjust upward |
+
+Judging pronunciation or grammar needs a language model or a human. Rather than pretend
+otherwise, [`lib/placementScoring.js`](src/lib/placementScoring.js) states the limit of each
+signal, writing is hard-capped at B1 no matter how long the answer, and the result reports a
+**confidence** plus a list of what a person still has to confirm. That is also the seam where
+LLM scoring drops in later.
+
+### Interactive Learning
+
+Courses are an LMS, not a video list. Five lesson kinds — **video, audio, reading, quiz,
+game** — and **every module ends in something the learner produces**, never in something they
+only watch. That rule is asserted in the tests across all 102 courses.
+
+Quizzes come in three modalities and reuse the placement components outright: multiple choice
+is `QuestionCard`, written answers are `WritingTask`, spoken answers are `SpeakingTask` — so a
+quiz inside a course and a task inside the placement test cannot drift apart, and the written
+and spoken ones get LLM validation for free.
+
+**Assessment is continuous.** A module can end in a *checkpoint* that re-levels the learner
+mid-course and writes into their placement history, so the teachers and classes recommended to
+them move as they improve. Checkpoints only move a level on an unambiguous result — all correct
+or none — because two out of three is noise.
+
+Progress is stored per lesson ([`features/learning/progressSlice.js`](src/features/learning/progressSlice.js)),
+not as a single percentage, because someone returning after two weeks needs to know *which*
+lesson they were on. A retry never lowers a good score.
+
+Vocabulary for games and glossaries is authored for the eight languages with question banks;
+everything else falls back to its greeting alone rather than shipping invented words.
+
+### Placement history
+
+Every attempt is kept ([`dashboard/placement/TestHistory.jsx`](src/dashboard/placement/TestHistory.jsx)),
+newest first, with the level climb, the per-skill summary and what is still awaiting a teacher.
+A single mark on a ladder is a snapshot; the history is the story, and it is the most motivating
+thing the product can show a learner.
+
+### Groq-backed assessment
+
+Writing is assessed by **`openai/gpt-oss-20b`** on Groq; transcription, where possible, by
+**`whisper-large-v3`**. [`server/assess-placement.js`](server/assess-placement.js) holds
+`GROQ_API_KEY` — server environment only, same rule as Daily.
+
+**Whisper covers 8 of the 25 languages. Igbo is not one of them**, and neither is any Nguni,
+Ghanaian or Senegambian language in the catalogue. Igbo audio is therefore never sent: it goes
+to a teacher instead. Auto-detecting would be worse than nothing, because Whisper would
+transcribe it as a language it does know and invent fluent, plausible text. Even where
+supported, low-resource African languages run 25–35% word error or worse, so the transcript is
+used only for coarse signals — how much of the answer was in the target language, and whether a
+read-aloud resembles its target. **Pronunciation is never machine-scored.**
+
+Three properties the tests pin down:
+
+- **The model advises, it never decides.** A verdict can move the writing level by at most one
+  step from the heuristic, and only when it is confident and actually read the target language.
+  `insufficient`, low confidence, or an answer written in English all leave the heuristic alone.
+- **It fails open.** No key, a 500, a timeout, malformed JSON — every path returns `null` and
+  scoring falls back to the heuristic. A learner is never blocked because Groq had a bad minute.
+- **Learner text is untrusted input.** It is fenced in the prompt and labelled as data, and the
+  system message forbids following instructions found inside it.
+
+**Before shipping:** sending a recording to Groq makes them a sub-processor of personal data
+under NDPR and GDPR, and their terms allow files to persist up to 30 days. `consented` is a hard
+gate in the handler, but you still need consent copy at the point of recording and a privacy
+policy naming Groq.
+
+Speaking uses `MediaRecorder`, which needs a mic grant and a secure context. Every failure path —
+denied, no microphone, unsupported browser — offers *skip* rather than trapping the learner.
+
+**The test lives behind auth**, at `/dashboard/placement`: it records audio, writes a result
+against the account and drives every recommendation afterwards. `/placement-test` stays public as
+a landing page, because "what level is my Yoruba" is the highest-intent search term this platform
+has and that URL must remain indexable.
+
+### Nobody learns before they are placed
+
+This is a hard rule, not a nudge. A learner cannot book a 1-on-1, reserve a group-class seat or
+open an interactive course until they have taken the free placement test **in that language**.
+
+One implementation decides it — [`usePlacementGate`](src/features/placement/usePlacementGate.js) —
+so the rule cannot drift between surfaces. It is applied at four action points:
+
+| Surface | Behaviour when unplaced |
+| --- | --- |
+| Teacher profile | Gate shown, booking button reads "Find your level first" |
+| Group class detail | Gate shown, reserve button disabled |
+| Course detail | Gate shown, no link into the player |
+| Course player | **Page replaced entirely**, and no enrolment row is created |
+
+**There is no escape hatch.** An earlier version let a learner declare their own level; that was
+removed deliberately. A self-declared level is a guess, and a guess puts them in the wrong lesson,
+wastes a teacher's preparation, and produces the refund that costs more than the friction saved.
+
+Three things the gate is careful about:
+
+- **Browsing stays open.** Listings, profiles, prices and availability are all visible without a
+  placement — someone has to be able to look before they decide, and those pages are the SEO.
+- **It is per language.** Placed at B2 in Yorùbá still means A1 in Igbo, and the gate says so.
+- **It is not a dead end.** The gate carries `?language=` and `?returnTo=`, so the test opens
+  pre-selected and the result screen offers *"Carry on where you left off"*.
+
+Teachers and admins are not gated; signed-out visitors see "Sign in to book" first, then the test.
+
+Two routes through the questions, one result shape:
 
 - **Graded quiz** — 8 authored items per language, ordered A1 → C1, each worth points equal to the
   level it tests. Available for Yorùbá, Igbo, Hausa, Swahili, isiZulu, Twi, Wolof and Amharic.
@@ -83,6 +195,7 @@ src/
 ├── server/                  join-lesson.js - deployable, holds DAILY_API_KEY
 ├── services/
 │   ├── api.js               ← the single RTK Query API surface
+│   └── mock/partners.js     partner list - add an entry + a source logo, nothing else changes
 │   └── mock/                catalogue, teachers, classes, videos, placement, db
 ├── components/
 │   ├── ui/                  Button, Badge, Avatar, Rating, Field, Icon, Pagination, Skeleton, States
@@ -105,6 +218,8 @@ src/
     ├── layout/              DashboardLayout, Sidebar, navigation.js (nav as data, per role)
     ├── components/          Panel, PageTitle, StatTile, ComingSoon
     ├── learner/             LearnerOverview, MyLessons
+    ├── placement/           PlacementPage, TestHistory
+    ├── learning/            CoursePlayer, MyCourses
     ├── teacher/             TeacherOverview, SchedulePage, AvailabilityEditor
     ├── admin/               AdminOverview
     ├── lesson/              LessonRoom (pre-join, countdown, call frame)
@@ -225,7 +340,17 @@ alongside them) — ~55KB total, no runtime dependency. Render them through
 [`components/common/Flag.jsx`](src/components/common/Flag.jsx); adding a country means adding its
 `iso` in `catalog.js` and dropping the matching SVG in.
 
-**The hero language rail** is a marquee: the track holds two identical groups and animates to
+**Two marquees share one implementation** — the hero language rail and the homepage partner
+slider. The track holds two identical groups and animates to `translateX(-50%)`, exactly one group
+wide, so the loop is seamless. The partner slider runs the reverse keyframe, because two bands
+sliding the same way on one page reads as a glitch.
+
+The geometry that has to hold: a group is exactly `n x (cardWidth + gap)`, with the gap carried as
+a trailing margin rather than a `gap` on the track. Put the gap on the track and the loop drifts by
+half of it every pass. The partner slider also repeats its list until a group clears the widest
+container, so a two-partner list does not leave a hole on a wide screen.
+
+**The hero language rail** additionally measures tile width against the container with a
 `translateX(-50%)`, exactly one group wide, so the loop is seamless. Tile width is measured from the
 container with a `ResizeObserver` (four across on desktop, three then two as it narrows) and the
 duration is derived from it, so the speed stays constant at 52px/s whatever the catalogue size. It
@@ -327,6 +452,40 @@ npx vite build --ssr scripts/schedule-check.js --outDir .smoke && node .smoke/sc
 npx vite build --ssr scripts/booking-check.jsx --outDir .smoke && node .smoke/booking-check.js
 ```
 
+```bash
+npx vite build --ssr scripts/placement-check.js --outDir .smoke && node .smoke/placement-check.js
+```
+
+```bash
+npx vite build --ssr scripts/groq-check.js --outDir .smoke && node .smoke/groq-check.js
+```
+
+```bash
+npx vite build --ssr scripts/learning-check.jsx --outDir .smoke && node .smoke/learning-check.js
+```
+
+```bash
+npx vite build --ssr scripts/gate-check.jsx --outDir .smoke && node .smoke/gate-check.js
+```
+
+`scripts/gate-check.jsx` proves the rule holds: an unplaced learner is blocked at all four action
+points, the player refuses a direct URL and creates no progress row, browsing still works, the
+"I know my level" escape is gone, being placed in Yorùbá still blocks Igbo, and teachers are not
+gated. 29 assertions.
+
+`scripts/learning-check.js` walks the LMS: all 102 courses build a playable curriculum, every
+module ends actively, all three quiz modalities appear, a retry never lowers a good score, and a
+checkpoint writes a level change into the placement history. 34 assertions.
+
+`scripts/groq-check.js` covers the assessment layer: Igbo is never sent to Whisper, no consent
+means no third party, a confident model verdict can still only move the level one step, an answer
+written in English lands at A1 rather than C1, and every Groq failure mode returns null instead of
+throwing. 44 assertions.
+
+`scripts/placement-check.js` guards the honesty of the scoring: writing never claims above its
+B1 cap even for a 180-word answer, speaking never returns a level at all, a weak self-check can
+never drag a learner down, and confidence degrades when parts are skipped. 33 assertions.
+
 `scripts/schedule-check.js` is the one to keep green. 30 assertions on timezone arithmetic and
 slot generation, including both sides of a real DST transition (BST begins 29 March 2026) and a
 UTC+14 zone. It caught a genuine off-by-one in `calendarDays` that only appears past UTC+12.
@@ -353,10 +512,18 @@ data preload shows up.
 Two asset pipelines, both re-runnable and both requiring ImageMagick 7:
 
 ```bash
+./scripts/build-partner-logos.sh # art/partners/* -> normalised square WebP tiles
 ./scripts/build-logo-assets.sh   # art/Ntaka_Logo.jpg -> emblem, favicons, apple-touch icon
 ./scripts/build-hero-poster.sh   # source art -> transparent, theme-green WebP
 ./scripts/build-og-image.sh      # -> public/og-default.jpg, the 1200x630 social card
 ```
+
+`build-partner-logos.sh` exists because supplied logos arrive in four different states: one
+was a transparent PNG saved as JPEG with the editor's **checkerboard baked into the pixels**,
+one was a black-ground avatar crop, one was genuinely transparent, one was landscape with a
+caption. It flood-fills the outer ground to white from the corners — never a global colour key,
+which would punch holes through the artwork — then trims and pads to a square tile. Output is
+~15KB WebP each, down from 22-110KB.
 
 `build-logo-assets.sh` takes only the emblem from the supplied lockup - the NTAKA wordmark
 and tagline in the artwork are unreadable below ~200px, and the UI sets the name in Fraunces

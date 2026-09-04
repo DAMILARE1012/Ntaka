@@ -19,7 +19,7 @@ const GREETINGS = [
 const PROMISES = [
   'Free level test before you pay anything',
   'Native teachers across 14 countries',
-  'Live lessons, group classes, video courses',
+  'Live lessons, group classes, interactive courses',
 ];
 
 export default function Hero() {
@@ -95,7 +95,7 @@ export default function Hero() {
               {[
                 { label: 'Native teachers', value: formatCompact(stats.teachers) },
                 { label: 'Lessons taught', value: formatCompact(stats.lessonsDelivered) },
-                { label: 'Video courses', value: formatCompact(stats.courses) },
+                { label: 'Interactive courses', value: formatCompact(stats.courses) },
                 { label: 'CEFR levels', value: '6' },
               ].map((stat) => (
                 <div key={stat.label}>

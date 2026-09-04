@@ -10,6 +10,8 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectIsSignedIn, selectUser, redirectRequested } from '@/dashboard/auth/authSlice';
 import { ROLES } from '@/services/mock/accounts';
 import SlotPicker from '@/features/booking/components/SlotPicker';
+import PlacementGate from '@/features/placement/components/PlacementGate';
+import { usePlacementGate } from '@/features/placement/usePlacementGate';
 
 const TYPE_ORDER = ['trial', 'standard', 'long'];
 
@@ -37,6 +39,11 @@ export default function BookingPanel({ teacher }) {
   const type = LESSON_TYPES[lessonType];
   const tz = viewerTimezone();
   const isOwnProfile = user?.teacherId === teacher.id;
+
+  // Nobody books before they are placed. One rule, one implementation - see
+  // features/placement/usePlacementGate.js.
+  const gate = usePlacementGate(teacher.languageId);
+  const needsPlacement = gate.required;
 
   const chooseType = (id) => {
     setLessonType(id);
@@ -157,6 +164,15 @@ export default function BookingPanel({ teacher }) {
         </p>
       )}
 
+      {needsPlacement && (
+        <div className="mt-4">
+          <PlacementGate
+            language={{ id: teacher.languageId, name: teacher.languageName }}
+            action="book a lesson"
+          />
+        </div>
+      )}
+
       {isOwnProfile ? (
         <p className="mt-4 rounded-lg bg-subtle px-3 py-2.5 text-sm text-muted">
           This is your own profile — this is what learners see.
@@ -171,13 +187,15 @@ export default function BookingPanel({ teacher }) {
           size="lg"
           className="mt-4"
           onClick={confirm}
-          disabled={booking || (isSignedIn && !selected)}
+          disabled={booking || needsPlacement || (isSignedIn && !selected)}
         >
           {booking
             ? 'Confirming…'
             : !isSignedIn
               ? 'Sign in to book'
-              : selected
+              : needsPlacement
+                ? 'Find your level first'
+                : selected
                 ? `Confirm ${formatPrice(data?.price ?? teacher.trialPrice)}`
                 : 'Pick a time'}
         </Button>

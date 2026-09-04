@@ -12,6 +12,8 @@ import LevelBadge from '@/components/common/LevelBadge';
 import VideoThumb from '@/components/common/VideoThumb';
 import CourseCard from '@/features/videos/components/CourseCard';
 import { cx, formatCompact, formatDuration, formatPrice } from '@/lib/format';
+import PlacementGate from '@/features/placement/components/PlacementGate';
+import { usePlacementGate } from '@/features/placement/usePlacementGate';
 import Flag from '@/components/common/Flag';
 import Seo from '@/components/common/Seo';
 import { courseSeo } from '@/lib/seo';
@@ -77,6 +79,7 @@ function Curriculum({ modules }) {
 export default function CourseDetailPage() {
   const { courseId } = useParams();
   const { data: course, isLoading, isError, refetch } = useGetCourseQuery(courseId);
+  const gate = usePlacementGate(course?.languageId);
 
   if (isError) {
     return (
@@ -103,9 +106,9 @@ export default function CourseDetailPage() {
           videoCourse(course),
           breadcrumbs([
             { name: 'Home', path: '/' },
-            { name: 'Video learning', path: '/video-learning' },
+            { name: 'Interactive learning', path: '/interactive-learning' },
             { name: course.languageName, path: `/languages/${course.languageId}` },
-            { name: course.title, path: `/video-learning/${course.id}` },
+            { name: course.title, path: `/interactive-learning/${course.id}` },
           ]),
         )}
       />
@@ -113,7 +116,7 @@ export default function CourseDetailPage() {
       <div className="border-b border-line bg-surface">
         <div className="container py-8">
           <Link
-            to={`/video-learning?language=${course.languageId}`}
+            to={`/interactive-learning?language=${course.languageId}`}
             className="link-arrow mb-5 inline-flex"
           >
             <Icon name="arrowLeft" className="h-4 w-4" />
@@ -215,9 +218,25 @@ export default function CourseDetailPage() {
           </p>
           <p className="text-sm text-muted">One payment, lifetime access</p>
 
-          <Button fullWidth size="lg" className="mt-4">
-            {course.isFree ? 'Start learning' : 'Enrol now'}
-          </Button>
+          {gate.required && (
+            <div className="mt-4">
+              <PlacementGate
+                language={{ id: course.languageId, name: course.languageName }}
+                action="start a course"
+                compact
+              />
+            </div>
+          )}
+
+          {gate.required ? (
+            <Button fullWidth size="lg" className="mt-4" disabled>
+              Find your level first
+            </Button>
+          ) : (
+            <Button fullWidth size="lg" className="mt-4" to={`/dashboard/learn/${course.id}`}>
+              {course.isFree ? 'Start learning' : 'Enrol now'}
+            </Button>
+          )}
           <Button fullWidth variant="outline" className="mt-2">
             <Icon name="play" className="h-4 w-4" />
             Watch free preview
@@ -237,7 +256,7 @@ export default function CourseDetailPage() {
           </ul>
 
           <p className="mt-5 rounded-xl bg-subtle p-4 text-xs text-muted">
-            Video learning works best alongside live practice.{' '}
+            Interactive learning works best alongside live practice.{' '}
             <Link
               to={`/teachers?language=${course.languageId}`}
               className="font-semibold text-brand hover:text-brand-hover"

@@ -1,5 +1,14 @@
-import { LEVEL_CODES, levelIndex } from '@/lib/cefr';
 import { getLanguage } from '@/services/mock/catalog';
+import { speakingPromptsFor, writingPromptFor } from '@/services/mock/placementTasks';
+import {
+  LEVEL_POINTS,
+  scoreVocabulary,
+  scoreWriting,
+  summariseSpeaking,
+  selfAssessedLevel,
+  combine,
+} from '@/lib/placementScoring';
+import { applyWritingAssessment, isTranscribable } from '@/lib/groqAssessment';
 
 /**
  * Ntaka's free placement check.
@@ -314,9 +323,6 @@ export const QUESTION_BANKS = {
   ],
 };
 
-/** Points a correct answer is worth, by the level it tests. */
-const LEVEL_POINTS = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
-
 export const hasQuizFor = (languageId) => Boolean(QUESTION_BANKS[languageId]);
 
 /** Assemble the full test definition the UI walks through. */
@@ -326,95 +332,74 @@ export function buildTest(languageId) {
   return {
     languageId,
     languageName: language?.name ?? 'this language',
+    language,
     mode: quiz ? 'quiz' : 'self',
     background: BACKGROUND_QUESTIONS,
     questions: quiz ?? [],
+    writingPrompt: writingPromptFor(languageId),
+    speakingPrompts: speakingPromptsFor(languageId),
     selfAssessment: SELF_ASSESSMENT,
     maxScore: quiz ? quiz.reduce((n, item) => n + LEVEL_POINTS[item.level], 0) : null,
-    estimatedMinutes: quiz ? 6 : 3,
+    estimatedMinutes: quiz ? 7 : 5,
   };
 }
 
-const scoreToLevel = (ratio) => {
-  if (ratio >= 0.94) return 'C2';
-  if (ratio >= 0.78) return 'C1';
-  if (ratio >= 0.58) return 'B2';
-  if (ratio >= 0.36) return 'B1';
-  if (ratio >= 0.16) return 'A2';
-  return 'A1';
-};
-
-/** Highest level whose statement — and every statement below it — the learner ticked. */
-function selfAssessedLevel(checked = []) {
-  let best = null;
-  for (const item of SELF_ASSESSMENT) {
-    if (!checked.includes(item.level)) break;
-    best = item.level;
-  }
-  return best ?? 'A1';
-}
-
 /**
- * Grade a submission. Works for both routes and always returns the same shape.
- * `answers` maps question id -> option id; `selfChecked` is an array of level codes.
+ * Grade a submission across all four skills.
+ *
+ * The judgement lives in lib/placementScoring.js, which documents what each skill can and
+ * cannot honestly be scored on. This only assembles the pieces and keeps a few flat
+ * fields for screens that care only about the quiz.
  */
-export function scoreTest({ languageId, answers = {}, selfChecked = [], background = {} }) {
+export function scoreTest({
+  languageId,
+  answers = {},
+  selfChecked = [],
+  background = {},
+  writingResponse = '',
+  recordings = [],
+  /* Optional. Produced by server/assess-placement.js when GROQ_API_KEY is configured.
+     Absent, malformed or low-confidence verdicts leave the heuristic untouched, so the
+     learner still gets a result when Groq is down or rate-limited. */
+  writingVerdict = null,
+  speakingSignals = null,
+}) {
   const test = buildTest(languageId);
-  const selfLevel = selfAssessedLevel(selfChecked);
 
-  if (test.mode === 'self') {
-    return {
-      languageId,
-      mode: 'self',
-      level: selfLevel,
-      score: null,
-      maxScore: null,
-      correctCount: null,
-      totalQuestions: 0,
-      breakdown: [],
-      confidence: 'self-reported',
-      background,
-    };
-  }
+  const vocabulary = scoreVocabulary(test.questions, answers);
+  const writing = applyWritingAssessment(
+    scoreWriting({
+      response: writingResponse,
+      prompt: test.writingPrompt,
+      language: test.language,
+    }),
+    writingVerdict,
+  );
 
-  let score = 0;
-  const breakdown = test.questions.map((item) => {
-    const given = answers[item.id];
-    const correct = given === item.answerId;
-    if (correct) score += LEVEL_POINTS[item.level];
-    return {
-      id: item.id,
-      level: item.level,
-      prompt: item.prompt,
-      correct,
-      given,
-      answerId: item.answerId,
-      answerLabel: item.options.find((o) => o.id === item.answerId)?.label,
-      note: item.note,
-    };
-  });
+  const speaking = {
+    ...summariseSpeaking(recordings),
+    transcribable: isTranscribable(languageId),
+    signals: speakingSignals,
+  };
+  const selfLevel = selfAssessedLevel(selfChecked, SELF_ASSESSMENT);
 
-  const quizLevel = scoreToLevel(score / test.maxScore);
-
-  // The quiz leads, but a confident self-assessment can pull the result up by one level
-  // when the learner clearly under-performed on written items (common for oral heritage speakers).
-  let level = quizLevel;
-  if (levelIndex(selfLevel) > levelIndex(quizLevel) + 1) {
-    level = LEVEL_CODES[levelIndex(quizLevel) + 1];
-  }
+  const outcome = combine({ vocabulary, writing, speaking, selfLevel });
 
   return {
     languageId,
-    mode: 'quiz',
-    level,
-    quizLevel,
+    mode: test.mode,
+    level: outcome.level,
+    confidence: outcome.confidence,
+    adjusted: outcome.adjusted,
+    reasons: outcome.reasons,
+    pendingReview: outcome.pendingReview,
     selfLevel,
-    score,
-    maxScore: test.maxScore,
-    correctCount: breakdown.filter((b) => b.correct).length,
-    totalQuestions: test.questions.length,
-    breakdown,
-    confidence: level === quizLevel ? 'high' : 'adjusted',
+    skills: { vocabulary, writing, speaking },
+    score: vocabulary?.score ?? null,
+    maxScore: vocabulary?.maxScore ?? null,
+    correctCount: vocabulary?.correctCount ?? null,
+    totalQuestions: vocabulary?.total ?? 0,
+    breakdown: vocabulary?.breakdown ?? [],
     background,
   };
 }

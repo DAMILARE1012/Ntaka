@@ -71,7 +71,7 @@ export const videoCourse = (course) => ({
   '@type': 'Course',
   name: course.title,
   description: course.description,
-  url: absolute(`/video-learning/${course.id}`),
+  url: absolute(`/interactive-learning/${course.id}`),
   provider: { '@id': ORG_ID },
   inLanguage: course.languageName,
   teaches: course.promise,
@@ -100,7 +100,7 @@ export const videoCourse = (course) => ({
     priceCurrency: course.currency,
     category: course.isFree ? 'Free' : 'Paid',
     availability: 'https://schema.org/InStock',
-    url: absolute(`/video-learning/${course.id}`),
+    url: absolute(`/interactive-learning/${course.id}`),
   },
 });
 
@@ -189,6 +189,28 @@ export const assessmentPage = ({ name, description, path }) => ({
   isPartOf: { '@id': SITE_ID },
   publisher: { '@id': ORG_ID },
   offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD' },
+});
+
+/**
+ * FAQPage, which is the one schema type on this site that can win its own rich result.
+ *
+ * Two rules Google enforces and will penalise: the marked-up answer must be the same text
+ * the visitor sees, and the answer must be visible on the page — not fetched on expand.
+ * Both hold here because the page renders every answer into the DOM and only collapses it
+ * with CSS, and because both the page and this function read the same `answer` strings.
+ */
+export const faqPage = ({ name, description, path, faqs }) => ({
+  '@type': 'FAQPage',
+  name,
+  description,
+  url: absolute(path),
+  isPartOf: { '@id': SITE_ID },
+  publisher: { '@id': ORG_ID },
+  mainEntity: faqs.map((faq) => ({
+    '@type': 'Question',
+    name: faq.question,
+    acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+  })),
 });
 
 /** Wrap nodes into a single @graph and strip undefined so the JSON stays clean. */

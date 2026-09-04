@@ -9,6 +9,7 @@ import placementReducer from '@/features/placement/placementSlice';
 import learnerReducer, { learnerPersistence } from '@/features/learner/learnerSlice';
 import themeReducer, { themePersistence } from '@/features/theme/themeSlice';
 import authReducer, { sessionPersistence } from '@/dashboard/auth/authSlice';
+import progressReducer, { progressPersistence } from '@/features/learning/progressSlice';
 
 /**
  * `devChecks: false` is for scripts/prerender.jsx, which builds a store per page across
@@ -27,6 +28,7 @@ export const makeStore = ({ devChecks = true } = {}) =>
       learner: learnerReducer,
       theme: themeReducer,
       auth: authReducer,
+      progress: progressReducer,
     },
     middleware: (getDefault) =>
       getDefault(
@@ -37,6 +39,7 @@ export const makeStore = ({ devChecks = true } = {}) =>
         learnerPersistence,
         themePersistence,
         sessionPersistence,
+        progressPersistence,
       ),
   });
 
