@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useGetTeacherQuery } from '@/services/api';
 import Avatar from '@/components/ui/Avatar';
@@ -15,102 +14,15 @@ import { SpokenLanguages } from '@/components/common/ProficiencyBars';
 import TeacherMiniCard from '@/features/teachers/components/TeacherMiniCard';
 import ClassCard from '@/features/classes/components/ClassCard';
 import CourseCard from '@/features/videos/components/CourseCard';
-import { TIME_BLOCKS } from '@/lib/schedule';
+import BookingPanel from '@/features/booking/components/BookingPanel';
 import { cx, formatCount, formatPrice } from '@/lib/format';
 import Seo from '@/components/common/Seo';
 import { teacherSeo } from '@/lib/seo';
 import { graph, teacherPerson, breadcrumbs } from '@/lib/structuredData';
 
-function BookingPanel({ teacher, selectedSlot }) {
-  const [packageIndex, setPackageIndex] = useState(0);
-  const pack = teacher.packages[packageIndex];
-  const packTotal = teacher.hourlyRate * pack.lessons * (1 - pack.discount);
-
-  return (
-    <div className="surface-card p-5 lg:sticky lg:top-20">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">Trial lesson</p>
-      <p className="mt-1 font-display text-2xl font-semibold text-fg">
-        {formatPrice(teacher.trialPrice)}
-      </p>
-      <p className="text-sm text-muted">30 minutes · one per teacher</p>
-
-      <Button fullWidth size="lg" className="mt-4">
-        Book a trial lesson
-      </Button>
-      <Button fullWidth variant="outline" className="mt-2">
-        <Icon name="message" className="h-4 w-4" />
-        Message {teacher.name.split(' ')[0]}
-      </Button>
-
-      {selectedSlot && (
-        <p className="mt-3 rounded-xl bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-hover">
-          Selected: {new Date(selectedSlot.date).toLocaleDateString(undefined, {
-            weekday: 'long',
-            month: 'short',
-            day: 'numeric',
-          })}
-          , {TIME_BLOCKS[selectedSlot.block].label}
-        </p>
-      )}
-
-      <div className="mt-6 border-t border-line pt-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">Lesson packages</p>
-        <div className="mt-3 flex gap-2">
-          {teacher.packages.map((option, i) => (
-            <button
-              key={option.lessons}
-              type="button"
-              onClick={() => setPackageIndex(i)}
-              className={cx(
-                'flex-1 rounded-xl border px-2 py-2.5 text-center transition-colors',
-                packageIndex === i
-                  ? 'border-brand bg-brand-soft'
-                  : 'border-line hover:border-line-strong',
-              )}
-            >
-              <span className="block font-display text-base font-semibold text-fg">
-                {option.lessons}
-              </span>
-              <span className="block text-2xs font-semibold text-muted">
-                −{Math.round(option.discount * 100)}%
-              </span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 flex items-baseline justify-between text-sm">
-          <span className="text-muted">{pack.lessons} × 60 min</span>
-          <span className="font-display text-lg font-semibold text-fg">
-            {formatPrice(packTotal)}
-          </span>
-        </p>
-        <p className="text-xs text-muted">
-          {formatPrice(packTotal / pack.lessons)} per lesson · normally{' '}
-          {formatPrice(teacher.hourlyRate)}
-        </p>
-      </div>
-
-      <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
-        <div className="flex justify-between">
-          <dt className="text-muted">Responds in</dt>
-          <dd className="font-semibold text-fg">{teacher.responseTime}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted">Attendance</dt>
-          <dd className="font-semibold text-fg">{teacher.attendanceRate}%</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted">Students</dt>
-          <dd className="font-semibold text-fg">{formatCount(teacher.students)}</dd>
-        </div>
-      </dl>
-    </div>
-  );
-}
-
 export default function TeacherProfilePage() {
   const { teacherId } = useParams();
   const { data: teacher, isLoading, isError, refetch } = useGetTeacherQuery(teacherId);
-  const [selectedSlot, setSelectedSlot] = useState(null);
 
   if (isError) {
     return (
@@ -232,14 +144,11 @@ export default function TeacherProfilePage() {
           <section>
             <h2 className="text-lg font-semibold">Availability</h2>
             <p className="mt-2 text-sm text-muted">
-              Pick a four-hour band and {teacher.name.split(' ')[0]} will confirm an exact start
-              time. Green blocks are open.
+              An overview of {teacher.name.split(' ')[0]}&rsquo;s open hours in your timezone.
+              Exact start times are in the booking box.
             </p>
             <div className="surface-card mt-4 p-5">
-              <AvailabilityGrid
-                availability={teacher.availability}
-                onSelect={setSelectedSlot}
-              />
+              <AvailabilityGrid availability={teacher.availability} />
             </div>
           </section>
 
@@ -280,7 +189,7 @@ export default function TeacherProfilePage() {
           )}
         </div>
 
-        <BookingPanel teacher={teacher} selectedSlot={selectedSlot} />
+        <BookingPanel teacher={teacher} />
       </div>
     </>
   );

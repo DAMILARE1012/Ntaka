@@ -11,34 +11,65 @@ import LanguagesPage from '@/pages/LanguagesPage';
 import LanguageDetailPage from '@/pages/LanguageDetailPage';
 import PlacementTestPage from '@/pages/PlacementTestPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import LoginPage from '@/dashboard/auth/LoginPage';
+import SignupPage from '@/dashboard/auth/SignupPage';
+import RequireAuth from '@/dashboard/auth/RequireAuth';
+import DashboardRoutes from '@/dashboard/DashboardRoutes';
 
+/**
+ * Two applications behind one router.
+ *
+ *   src/pages + src/features   the public site: prerendered, indexable, no auth
+ *   src/dashboard              the authenticated app: client-only, noindex, guarded
+ *
+ * They share the design system in src/components and the data layer in src/services,
+ * and nothing else. The split is deliberate - marketing pages must stay static and
+ * crawlable, and product screens must never leak into the sitemap.
+ */
 export default function App() {
   return (
-    <PageLayout>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
+    <Routes>
+      {/* ------------------------------------------- authenticated app */}
+      <Route element={<RequireAuth />}>
+        <Route path="/dashboard/*" element={<DashboardRoutes />} />
+      </Route>
 
-        {/* 1-on-1 lessons */}
-        <Route path="/teachers" element={<TeachersPage />} />
-        <Route path="/teachers/:teacherId" element={<TeacherProfilePage />} />
+      {/* auth screens carry their own chrome, so they sit outside PageLayout */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
 
-        {/* group classes */}
-        <Route path="/classes" element={<ClassesPage />} />
-        <Route path="/classes/:classId" element={<ClassDetailPage />} />
+      {/* ------------------------------------------------- public site */}
+      <Route
+        path="*"
+        element={
+          <PageLayout>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
 
-        {/* video learning (self-paced courses) */}
-        <Route path="/video-learning" element={<VideoLearningPage />} />
-        <Route path="/video-learning/:courseId" element={<CourseDetailPage />} />
+              {/* 1-on-1 lessons */}
+              <Route path="/teachers" element={<TeachersPage />} />
+              <Route path="/teachers/:teacherId" element={<TeacherProfilePage />} />
 
-        {/* catalogue */}
-        <Route path="/languages" element={<LanguagesPage />} />
-        <Route path="/languages/:languageId" element={<LanguageDetailPage />} />
+              {/* group classes */}
+              <Route path="/classes" element={<ClassesPage />} />
+              <Route path="/classes/:classId" element={<ClassDetailPage />} />
 
-        {/* free placement check */}
-        <Route path="/placement-test" element={<PlacementTestPage />} />
+              {/* video learning (self-paced courses) */}
+              <Route path="/video-learning" element={<VideoLearningPage />} />
+              <Route path="/video-learning/:courseId" element={<CourseDetailPage />} />
 
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </PageLayout>
+              {/* catalogue */}
+              <Route path="/languages" element={<LanguagesPage />} />
+              <Route path="/languages/:languageId" element={<LanguageDetailPage />} />
+
+              {/* free placement check */}
+              <Route path="/placement-test" element={<PlacementTestPage />} />
+
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </PageLayout>
+        }
+      />
+    </Routes>
   );
 }

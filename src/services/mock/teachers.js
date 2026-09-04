@@ -1,6 +1,7 @@
 import { rng } from '@/lib/prng';
 import { levelRange } from '@/lib/cefr';
-import { generateAvailability, nextAvailableLabel, slotsWithin } from '@/lib/schedule';
+import { timezoneForCountry } from '@/lib/timezone';
+import { buildRules } from '@/services/mock/scheduling';
 import { LANGUAGES_FULL } from '@/services/mock/catalog';
 import { GIVEN_NAMES, FAMILY_NAMES, BRIDGE_LANGUAGES } from '@/services/mock/names';
 
@@ -73,11 +74,12 @@ function buildTeacher(language, index) {
   const hourly = isProfessional ? r.int(14, 42) : r.int(6, 18);
   const trial = Math.max(3, Math.round(hourly * r.float(0.3, 0.55)));
 
+  // Availability is stored as weekly rules in the teacher's own timezone. The grid shown
+  // on cards and profiles is derived from these at read time, so what a learner sees and
+  // what they can actually book are the same thing by construction.
   const shape = AVAILABILITY_SHAPES[index % AVAILABILITY_SHAPES.length];
-  const availability = generateAvailability(`${language.id}:${index}`, {
-    density: r.float(0.5, 1.15),
-    shape,
-  });
+  const timezone = timezoneForCountry(language.countryId);
+  const availabilityRules = buildRules(`${language.id}-${index + 1}`, shape);
 
   // Bridge languages a learner might share with the teacher.
   const bridges = r.sample(
@@ -133,10 +135,9 @@ function buildTeacher(language, index) {
     currency: 'USD',
     responseTime: `${r.int(1, 12)} hrs`,
     attendanceRate: r.int(94, 100),
-    availability,
+    timezone,
     availabilityShape: shape,
-    nextAvailable: nextAvailableLabel(availability),
-    slotsIn72h: slotsWithin(availability, 3),
+    availabilityRules,
     packages: [
       { lessons: 5, discount: 0.05 },
       { lessons: 10, discount: 0.1 },

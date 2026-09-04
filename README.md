@@ -79,7 +79,8 @@ in the catalogue. Nothing else changes.
 ```
 src/
 ├── app/                     store, typed-ish hooks, useDebounced
-├── lib/                     cefr · schedule · format · prng   (pure, no React)
+├── lib/                     cefr · timezone · booking · meetings · format · prng  (pure)
+├── server/                  join-lesson.js - deployable, holds DAILY_API_KEY
 ├── services/
 │   ├── api.js               ← the single RTK Query API surface
 │   └── mock/                catalogue, teachers, classes, videos, placement, db
@@ -98,8 +99,90 @@ src/
 │   ├── languages/           LanguageCard
 │   └── home/                Hero, LanguageRail, PlacementBanner, Offerings, FeaturedTeachers,
 │                            LanguagesByRegion, HomeRails, Testimonials, TeachCta
-└── pages/                   thin route components — compose feature components, hold no logic
+├── pages/                   thin route components — compose feature components, hold no logic
+└── dashboard/               THE AUTHENTICATED APP — separate tree, shares only components/ + services/
+    ├── auth/                authSlice, LoginPage, SignupPage, RequireAuth, AuthLayout, AuthField
+    ├── layout/              DashboardLayout, Sidebar, navigation.js (nav as data, per role)
+    ├── components/          Panel, PageTitle, StatTile, ComingSoon
+    ├── learner/             LearnerOverview, MyLessons
+    ├── teacher/             TeacherOverview, SchedulePage, AvailabilityEditor
+    ├── admin/               AdminOverview
+    ├── lesson/              LessonRoom (pre-join, countdown, call frame)
+    └── DashboardRoutes.jsx
 ```
+
+**The public/private split.** `src/pages` + `src/features` are the marketing site: prerendered,
+indexable, no auth. `src/dashboard` is the product: client-only, `noindex`, route-guarded, never
+prerendered. They share the design system and the data layer and nothing else. `App.jsx` keeps them
+in separate route trees so neither can accidentally pull in the other's chrome.
+
+### Availability and booking
+
+Availability is stored as **weekly rules plus dated exceptions**, never as generated slot rows.
+"Tuesdays 18:00-21:00, except 3 June" stays two small records forever; materialising slots would
+mean an unbounded table and a migration every time a teacher changes their week.
+
+Slots are derived on read by one pure function in [`lib/booking.js`](src/lib/booking.js). The grid
+on a teacher card, the grid on their profile and the times in the booking picker all call it, so
+they cannot disagree - that class of bug ("the grid says free, booking says no") is designed out
+rather than tested for.
+
+**Timezones are the real work.** A teacher publishes wall-clock time in their own zone; a learner
+reads it in theirs. [`lib/timezone.js`](src/lib/timezone.js) does the conversion through the IANA
+database via `Intl`, with a two-pass algorithm so the hour either side of a DST change is right.
+Everything is stored as a UTC instant. A Lagos teacher (no DST) and a London learner (DST) drift by
+an hour twice a year under naive date maths; `schedule-check.js` asserts they do not here.
+
+Conflict detection runs again inside `createBooking`, not only in the picker: between rendering a
+slot and clicking it, someone else may have taken it. In Postgres that check belongs in a
+transaction with a unique constraint on `(teacher_id, starts_at)`.
+
+### Lesson rooms
+
+Video runs on Daily.co. The rule the whole design turns on: **rooms and join tokens are
+minted server-side, never in the browser.**
+
+[`server/join-lesson.js`](server/join-lesson.js) is the only place a room or token is created.
+It verifies the caller is the learner or teacher on that booking, that the booking is not
+cancelled, and that now is inside the join window, then creates a private room with a random
+UUID name and mints a token whose `is_owner` comes from the database. Three rules it exists to
+enforce:
+
+1. **Room names are random UUIDs**, never derived from the booking id - a derived name is
+   guessable, and a guessable room is an open door.
+2. **The role comes from the database**, never the request body - otherwise a learner claims
+   `is_owner` and can mute or eject their own teacher.
+3. **`DAILY_API_KEY` is server-only.** Vite inlines every `VITE_` variable into public
+   JavaScript, so a key named `VITE_DAILY_API_KEY` is a published credential.
+
+Until that function is deployed, [`services/mock/meetings.js`](src/services/mock/meetings.js)
+stands in - and it imports the *same* `evaluateJoinWindow` from
+[`lib/meetings.js`](src/lib/meetings.js) that the server uses. The authorisation behaviour you
+see locally is the behaviour you get in production; only the transport differs. What it cannot
+fake is a real room, so it returns `provider: 'mock'` and the UI renders a stand-in frame rather
+than pretending a connection exists.
+
+`@daily-co/daily-js` is imported dynamically inside an effect: it is a 265KB chunk only this
+screen needs, and it touches `window` at module scope, which would break the prerender build.
+
+### Auth
+
+Demo accounts, any password of 6+ characters:
+
+| Email | Role |
+| --- | --- |
+| `learner@ntaka.com` | Learner |
+| `teacher@ntaka.com` | Teacher (bound to a real catalogue teacher) |
+| `admin@ntaka.com` | Administrator |
+
+Sessions are held in `dashboard/auth/authSlice.js` and mirrored to `localStorage` so a refresh does
+not sign you out. **That mirror is a convenience, never a security boundary** — `RequireAuth` only
+stops a signed-out visitor landing on a broken screen. Every real endpoint must re-check the caller
+server-side.
+
+[`services/authApi.js`](src/services/authApi.js) is the only place a session is created or read.
+Moving to Supabase Auth means replacing four function bodies there and deleting
+`services/mock/accounts.js`; nothing else changes.
 
 **The rules the code follows**
 
@@ -231,6 +314,37 @@ lands at C2, a blank one at A1) for all eight authored banks. `scripts/render-sm
 every route plus the placement result screen. `scripts/copy-check.jsx` strips the homepage to plain
 text and flags any block over 22 words - run it after editing marketing copy to keep the page tight
 (it currently totals ~505 words).
+
+```bash
+npx vite build --ssr scripts/auth-check.jsx --outDir .smoke && node .smoke/auth-check.js
+```
+
+`scripts/auth-check.jsx` covers credential handling, signup validation, the route guard, and role
+isolation - that a learner cannot render admin or teacher panels. 24 assertions.
+
+```bash
+npx vite build --ssr scripts/schedule-check.js --outDir .smoke && node .smoke/schedule-check.js
+npx vite build --ssr scripts/booking-check.jsx --outDir .smoke && node .smoke/booking-check.js
+```
+
+`scripts/schedule-check.js` is the one to keep green. 30 assertions on timezone arithmetic and
+slot generation, including both sides of a real DST transition (BST begins 29 March 2026) and a
+UTC+14 zone. It caught a genuine off-by-one in `calendarDays` that only appears past UTC+12.
+
+```bash
+npx vite build --ssr scripts/meeting-check.jsx --outDir .smoke && node .smoke/meeting-check.js
+```
+
+`scripts/meeting-check.jsx` exercises the join rules and then runs **the real server handler**
+against a stubbed Daily API: a stranger is refused 403 with no token minted, a learner's token is
+never `is_owner`, the room name is random rather than derived, the API key travels only in the
+Authorization header, and a missing key fails closed rather than open. 27 assertions.
+
+`scripts/booking-check.jsx` runs the booking spine end to end: slots derive from rules, the lead
+time holds, a booking removes exactly the overlapping candidate starts, double-booking and
+past-dating are refused, only one trial per teacher, a stranger cannot cancel your lesson,
+cancelling returns the slot, editing rules re-derives everything, and each screen renders behind
+the right guard. 34 assertions.
 
 `npm run build:static` is itself a check: the prerender fails the build if any page comes
 out without a title, without a canonical, or suspiciously small - which is how a missed

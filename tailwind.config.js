@@ -55,6 +55,11 @@ export default {
           border: token('accent-border'),
           fg: token('accent-fg'),
         },
+        danger: {
+          DEFAULT: token('danger'),
+          soft: token('danger-soft'),
+          border: token('danger-border'),
+        },
 
         /* ---- fixed scales, for gradients and always-dark panels ---- */
         leaf: {

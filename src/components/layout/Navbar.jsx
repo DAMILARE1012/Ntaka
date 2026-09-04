@@ -5,6 +5,9 @@ import ThemeToggle from '@/components/layout/ThemeToggle';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { cx } from '@/lib/format';
+import { useAppSelector } from '@/app/hooks';
+import { selectIsSignedIn, selectUser } from '@/dashboard/auth/authSlice';
+import Avatar from '@/components/ui/Avatar';
 
 export const NAV_LINKS = [
   { to: '/teachers', label: '1-on-1 Lessons' },
@@ -14,6 +17,8 @@ export const NAV_LINKS = [
 ];
 
 export default function Navbar() {
+  const isSignedIn = useAppSelector(selectIsSignedIn);
+  const user = useAppSelector(selectUser);
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
@@ -67,12 +72,26 @@ export default function Navbar() {
 
           <ThemeToggle className="hidden sm:inline-flex" />
 
-          <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-            Log in
-          </Button>
-          <Button size="sm" className="hidden md:inline-flex">
-            Sign up
-          </Button>
+          {isSignedIn ? (
+            <Button
+              to="/dashboard"
+              variant="outline"
+              size="sm"
+              className="hidden md:inline-flex"
+            >
+              <Avatar name={user.displayName} size="xs" ringed={false} />
+              Dashboard
+            </Button>
+          ) : (
+            <>
+              <Button to="/login" variant="ghost" size="sm" className="hidden md:inline-flex">
+                Log in
+              </Button>
+              <Button to="/signup" size="sm" className="hidden md:inline-flex">
+                Sign up
+              </Button>
+            </>
+          )}
 
           <button
             type="button"
@@ -114,9 +133,20 @@ export default function Navbar() {
                 <Icon name="target" className="h-3.5 w-3.5" />
                 Free placement test
               </Button>
-              <Button variant="outline" fullWidth>
-                Log in or sign up
-              </Button>
+              {isSignedIn ? (
+                <Button to="/dashboard" variant="outline" fullWidth>
+                  Go to dashboard
+                </Button>
+              ) : (
+                <>
+                  <Button to="/login" variant="outline" fullWidth>
+                    Log in
+                  </Button>
+                  <Button to="/signup" fullWidth>
+                    Sign up
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>

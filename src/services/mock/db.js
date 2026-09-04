@@ -4,6 +4,11 @@ import { GROUP_CLASSES, CLASSES_BY_ID } from '@/services/mock/classes';
 import { VIDEO_COURSES, VIDEOS_BY_ID } from '@/services/mock/videos';
 import { buildTest, scoreTest } from '@/services/mock/placement';
 import { levelIndex, LEVEL_CODES } from '@/lib/cefr';
+import * as scheduling from '@/services/mock/scheduling';
+import * as meetings from '@/services/mock/meetings';
+import { LESSON_TYPES, BOOKING_STATUS, priceFor, isFreeCancellation } from '@/lib/booking';
+import { viewerTimezone, formatInZone, zonedDateKey } from '@/lib/timezone';
+import { calendarDays } from '@/lib/timezone';
 
 /**
  * In-memory query layer standing in for the Ntaka backend.
@@ -56,6 +61,39 @@ export const listLanguagesByCountry = () => languagesByCountry();
 
 /* ----------------------------------------------------------------- teachers */
 
+/**
+ * Teachers store weekly rules; cards and profiles want a 7-day grid and a "next open"
+ * line. Both are derived here from the same rules, minus anything already booked, so
+ * the preview on a card and the slots in the picker always agree.
+ */
+function withAvailability(teacher, viewerTz = viewerTimezone()) {
+  const { grid, slots } = scheduling.availabilityGridFor(teacher, viewerTz, 7);
+  const next = slots[0];
+  const todayKey = zonedDateKey(new Date(), viewerTz);
+
+  let nextAvailable = 'Message to request a time';
+  if (next) {
+    const when = new Date(next.startsAt);
+    const time = formatInZone(when, viewerTz, { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dayKey = zonedDateKey(when, viewerTz);
+    const tomorrowKey = calendarDays(viewerTz, 2)[1]?.key;
+    if (dayKey === todayKey) nextAvailable = `Available ${time} today`;
+    else if (dayKey === tomorrowKey) nextAvailable = `Available ${time} tomorrow`;
+    else {
+      nextAvailable = `Available ${time} ${formatInZone(when, viewerTz, { weekday: 'long' })}`;
+    }
+  }
+
+  const horizon = Date.now() + 72 * 3600 * 1000;
+  return {
+    ...teacher,
+    availability: grid,
+    nextAvailable,
+    slotsIn72h: slots.filter((s) => new Date(s.startsAt).getTime() <= horizon).length,
+  };
+}
+
+
 const TEACHER_SORTS = {
   recommended: (a, b) =>
     (b.rating ?? 4.4) * Math.log10(b.lessons + 10) - (a.rating ?? 4.4) * Math.log10(a.lessons + 10),
@@ -89,7 +127,7 @@ export function listTeachers({
     if (tags.length && !tags.every((tag) => t.tags.includes(tag))) return false;
     if (maxPrice != null && t.hourlyRate > maxPrice) return false;
     if (minRating && (t.rating ?? 0) < minRating) return false;
-    if (availableWithin72h && t.slotsIn72h === 0) return false;
+    if (availableWithin72h && withAvailability(t).slotsIn72h === 0) return false;
     if (instantLesson && !t.instantLesson) return false;
     if (q && !(matches(t.name, q) || matches(t.headline, q) || matches(t.languageName, q))) {
       return false;
@@ -97,14 +135,16 @@ export function listTeachers({
     return true;
   }).sort(TEACHER_SORTS[sort] ?? TEACHER_SORTS.recommended);
 
-  return paginate(filtered, page, pageSize);
+  const pageResult = paginate(filtered, page, pageSize);
+  // Only the visible page gets a derived grid - it is the expensive part.
+  return { ...pageResult, items: pageResult.items.map((t) => withAvailability(t)) };
 }
 
 export function readTeacher(id) {
   const teacher = TEACHERS_BY_ID[id];
   if (!teacher) return null;
   return {
-    ...teacher,
+    ...withAvailability(teacher),
     language: getLanguage(teacher.languageId),
     classes: GROUP_CLASSES.filter((c) => c.teacherId === id).slice(0, 4),
     courses: VIDEO_COURSES.filter((v) => v.teacherId === id).slice(0, 3),
@@ -205,6 +245,141 @@ export function readVideo(id) {
     related: VIDEO_COURSES.filter((v) => v.languageId === item.languageId && v.id !== id).slice(0, 3),
   };
 }
+
+/* ------------------------------------------------- availability & bookings */
+
+const requireTeacher = (id) => TEACHERS_BY_ID[id] ?? null;
+
+/** Bookable start times for one teacher and one lesson length. */
+export function listSlots({ teacherId, lessonType = 'standard', days = 14 } = {}) {
+  const teacher = requireTeacher(teacherId);
+  if (!teacher) return null;
+  const type = LESSON_TYPES[lessonType] ?? LESSON_TYPES.standard;
+  return {
+    teacherId,
+    lessonType: type.id,
+    durationMin: type.durationMin,
+    teacherTimezone: teacher.timezone,
+    price: priceFor(teacher, type.id),
+    currency: teacher.currency,
+    slots: scheduling.slotsFor(teacher, { durationMin: type.durationMin, days }),
+  };
+}
+
+/** A teacher's own weekly rules and dated exceptions, for the availability editor. */
+export function readAvailability(teacherId) {
+  const teacher = requireTeacher(teacherId);
+  if (!teacher) return null;
+  return {
+    teacherId,
+    timezone: teacher.timezone,
+    rules: scheduling.listRules(teacher),
+    exceptions: scheduling.listExceptions(teacherId),
+  };
+}
+
+export function writeAvailabilityRules({ teacherId, rules }) {
+  const teacher = requireTeacher(teacherId);
+  if (!teacher) return null;
+  scheduling.saveRules(teacher, rules);
+  return readAvailability(teacherId);
+}
+
+export function writeException({ teacherId, exception }) {
+  if (!requireTeacher(teacherId)) return null;
+  scheduling.addException(teacherId, exception);
+  return readAvailability(teacherId);
+}
+
+export function dropException({ teacherId, exceptionId }) {
+  if (!requireTeacher(teacherId)) return null;
+  scheduling.removeException(teacherId, exceptionId);
+  return readAvailability(teacherId);
+}
+
+/**
+ * Decorate a booking for display. In the real backend this is a join; here it keeps the
+ * stored row small and lets teacher detail change without rewriting history.
+ */
+const decorateBooking = (booking) => {
+  const teacher = TEACHERS_BY_ID[booking.teacherId];
+  return {
+    ...booking,
+    teacher: teacher
+      ? {
+          id: teacher.id,
+          name: teacher.name,
+          iso: teacher.iso,
+          country: teacher.country,
+          languageName: teacher.languageName,
+          typeLabel: teacher.typeLabel,
+          rating: teacher.rating,
+        }
+      : null,
+    isPast: new Date(booking.endsAt) < new Date(),
+    freeCancellation: isFreeCancellation(booking.startsAt),
+  };
+};
+
+export function listBookings({ learnerId, teacherId, scope = 'upcoming' } = {}) {
+  const now = new Date();
+  const all = scheduling
+    .listBookings({ learnerId, teacherId })
+    .filter((b) => {
+      if (scope === 'upcoming') {
+        return b.status !== BOOKING_STATUS.CANCELLED && new Date(b.endsAt) >= now;
+      }
+      if (scope === 'past') {
+        return b.status === BOOKING_STATUS.CANCELLED || new Date(b.endsAt) < now;
+      }
+      return true;
+    })
+    .map(decorateBooking);
+
+  return scope === 'past' ? all.reverse() : all;
+}
+
+export function bookLesson({ learner, teacherId, startsAt, lessonType }) {
+  const teacher = requireTeacher(teacherId);
+  if (!teacher) return { error: 'That teacher is no longer available.' };
+  const result = scheduling.createBooking({ learner, teacher, startsAt, lessonType });
+  return result.error ? result : { data: decorateBooking(result.data) };
+}
+
+export function dropBooking({ bookingId, userId }) {
+  const result = scheduling.cancelBooking({ bookingId, userId });
+  return result.error ? result : { data: decorateBooking(result.data) };
+}
+
+/** Populate a learner's calendar the first time they open the dashboard. */
+export function ensureSeedBookings(learner) {
+  scheduling.seedBookings({ learner, teachers: TEACHERS.filter((t) => t.languageId === 'yoruba') });
+  return listBookings({ learnerId: learner.id, scope: 'upcoming' });
+}
+
+/* ------------------------------------------------------------ lesson rooms */
+
+/**
+ * Ask for a seat in a lesson room.
+ *
+ * Today this resolves against services/mock/meetings.js. To go live, point it at the
+ * deployed function in server/join-lesson.js:
+ *
+ *   const response = await fetch(`${import.meta.env.VITE_API_URL}/join-lesson`, {
+ *     method: 'POST',
+ *     headers: { Authorization: `Bearer ${session.accessToken}` },
+ *     body: JSON.stringify({ bookingId }),
+ *   });
+ *
+ * The response shape is identical, so nothing above this line changes.
+ */
+export const joinLesson = (payload) => meetings.joinLesson(payload);
+export const leaveLesson = (payload) => meetings.leaveLesson(payload);
+export const readBookingForJoin = (bookingId) => {
+  const booking = scheduling.readBooking(bookingId);
+  return booking ? decorateBooking(booking) : null;
+};
+export const listMeetingParticipants = (bookingId) => meetings.listParticipants(bookingId);
 
 /* --------------------------------------------------------------- placement */
 

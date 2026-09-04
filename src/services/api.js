@@ -28,7 +28,7 @@ const resolve = (fn) => async (arg) => {
 export const ntakaApi = createApi({
   reducerPath: 'ntakaApi',
   baseQuery: fakeBaseQuery(),
-  tagTypes: ['Language', 'Teacher', 'Class', 'Course', 'Placement'],
+  tagTypes: ['Language', 'Teacher', 'Class', 'Course', 'Placement', 'Slots', 'Bookings', 'Meeting'],
   endpoints: (builder) => ({
     /* languages */
     getLanguages: builder.query({
@@ -85,6 +85,75 @@ export const ntakaApi = createApi({
       queryFn: resolve((payload) => db.submitPlacement(payload)),
     }),
 
+    /* availability + booking */
+    getSlots: builder.query({
+      queryFn: resolve((params) => db.listSlots(params)),
+      providesTags: (r, e, arg) => [{ type: 'Slots', id: arg?.teacherId }],
+    }),
+    getAvailability: builder.query({
+      queryFn: resolve((teacherId) => db.readAvailability(teacherId)),
+      providesTags: (r, e, id) => [{ type: 'Slots', id }],
+    }),
+    saveAvailabilityRules: builder.mutation({
+      queryFn: resolve((payload) => db.writeAvailabilityRules(payload)),
+      // Changing a week changes every derived slot and every card preview.
+      invalidatesTags: ['Slots', 'Teacher'],
+    }),
+    addAvailabilityException: builder.mutation({
+      queryFn: resolve((payload) => db.writeException(payload)),
+      invalidatesTags: ['Slots', 'Teacher'],
+    }),
+    removeAvailabilityException: builder.mutation({
+      queryFn: resolve((payload) => db.dropException(payload)),
+      invalidatesTags: ['Slots', 'Teacher'],
+    }),
+
+    getBookings: builder.query({
+      queryFn: resolve((params) => db.listBookings(params)),
+      providesTags: ['Bookings'],
+    }),
+    seedBookings: builder.query({
+      queryFn: resolve((learner) => db.ensureSeedBookings(learner)),
+      providesTags: ['Bookings'],
+    }),
+    createBooking: builder.mutation({
+      queryFn: async (payload) => {
+        const result = db.bookLesson(payload);
+        if (result.error) return { error: { status: 409, data: result.error } };
+        return { data: result.data };
+      },
+      // A new booking removes a slot and changes both dashboards.
+      invalidatesTags: ['Bookings', 'Slots', 'Teacher'],
+    }),
+    cancelBooking: builder.mutation({
+      queryFn: async (payload) => {
+        const result = db.dropBooking(payload);
+        if (result.error) return { error: { status: 400, data: result.error } };
+        return { data: result.data };
+      },
+      invalidatesTags: ['Bookings', 'Slots', 'Teacher'],
+    }),
+
+    /* lesson rooms */
+    getBooking: builder.query({
+      queryFn: resolve((bookingId) => db.readBookingForJoin(bookingId)),
+      providesTags: (r, e, id) => [{ type: 'Bookings', id }],
+    }),
+    joinLesson: builder.mutation({
+      queryFn: async (payload) => {
+        const result = db.joinLesson(payload);
+        if (result.error) {
+          return { error: { status: result.status ?? 403, data: result.error, state: result.state } };
+        }
+        return { data: result.data };
+      },
+      invalidatesTags: ['Meeting'],
+    }),
+    leaveLesson: builder.mutation({
+      queryFn: resolve((payload) => db.leaveLesson(payload)),
+      invalidatesTags: ['Meeting'],
+    }),
+
     /* homepage counters */
     getPlatformStats: builder.query({
       queryFn: resolve(() => db.readPlatformStats()),
@@ -106,4 +175,16 @@ export const {
   useGetPlacementTestQuery,
   useSubmitPlacementMutation,
   useGetPlatformStatsQuery,
+  useGetSlotsQuery,
+  useGetAvailabilityQuery,
+  useSaveAvailabilityRulesMutation,
+  useAddAvailabilityExceptionMutation,
+  useRemoveAvailabilityExceptionMutation,
+  useGetBookingsQuery,
+  useSeedBookingsQuery,
+  useCreateBookingMutation,
+  useCancelBookingMutation,
+  useGetBookingQuery,
+  useJoinLessonMutation,
+  useLeaveLessonMutation,
 } = ntakaApi;

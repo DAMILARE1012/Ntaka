@@ -91,6 +91,12 @@ const routes = [
   },
   { url: '/placement-test', priority: '0.9', changefreq: 'monthly', preload: () => [] },
 
+  // Auth screens are prerendered so they paint instantly, but they carry noindex and
+  // are kept out of the sitemap. /dashboard is never prerendered at all: it is private,
+  // per-user, and there is nothing meaningful to render without a session.
+  { url: '/login', sitemap: false, preload: () => [] },
+  { url: '/signup', sitemap: false, preload: () => [] },
+
   ...languages.map((language) => ({
     url: `/languages/${language.id}`,
     priority: '0.8',
@@ -188,6 +194,7 @@ function writeSitemap(results) {
   const byUrl = new Map(routes.map((route) => [route.url, route]));
 
   const urls = results
+    .filter(({ url }) => byUrl.get(url)?.sitemap !== false)
     .map(({ url }) => {
       const meta = byUrl.get(url);
       return [
@@ -247,12 +254,14 @@ async function main() {
 
   writeSitemap(results);
 
+  const byUrlForLog = new Map(routes.map((route) => [route.url, route]));
   const bytes = results.reduce((total, result) => total + result.bytes, 0);
   console.log(
     `prerendered ${results.length} pages in ${((Date.now() - started) / 1000).toFixed(1)}s`,
   );
   console.log(`  ${(bytes / results.length / 1024).toFixed(1)}KB of real HTML per page on average`);
-  console.log(`  sitemap: dist/sitemap.xml (${results.length} urls, base ${SITE.url})`);
+  const indexable = results.filter((r) => byUrlForLog.get(r.url)?.sitemap !== false).length;
+  console.log(`  sitemap: dist/sitemap.xml (${indexable} urls, base ${SITE.url})`);
 
   if (problems.length) {
     console.error(`\n${problems.length} problem(s):`);

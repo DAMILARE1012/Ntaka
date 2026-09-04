@@ -1,4 +1,5 @@
-import { TIME_BLOCKS, upcomingDays } from '@/lib/schedule';
+import { TIME_BLOCKS } from '@/lib/booking';
+import { calendarDays, viewerTimezone, zonedDateKey } from '@/lib/timezone';
 import { cx } from '@/lib/format';
 
 /**
@@ -12,8 +13,15 @@ export default function AvailabilityGrid({
   className,
   onSelect,
 }) {
-  const columns = upcomingDays(new Date(), days);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Same day list the slot engine uses, so the grid keys always line up with the data.
+  const timezone = viewerTimezone();
+  const today = zonedDateKey(new Date(), timezone);
+  const columns = calendarDays(timezone, days).map((day) => ({
+    ...day,
+    weekday: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][day.weekday],
+    dayOfMonth: day.day,
+    isToday: day.key === today,
+  }));
 
   return (
     <div className={cx('w-full', className)}>

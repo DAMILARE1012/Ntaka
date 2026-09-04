@@ -33,6 +33,12 @@
     --accent-border: 242 199 82;
     --accent-fg: 61 26 6;
 
+    /* Form errors and destructive actions. The only warm colour left in the palette,
+       so it reads as an exception rather than as decoration. */
+    --danger: 185 46 32;
+    --danger-soft: 253 240 237;
+    --danger-border: 244 199 191;
+
     --shadow: 13 34 24;
   }
 
@@ -60,6 +66,10 @@
     --accent-soft: 42 33 12;
     --accent-border: 74 58 22;
     --accent-fg: 20 15 4;
+
+    --danger: 248 130 113;
+    --danger-soft: 46 21 17;
+    --danger-border: 82 36 30;
 
     --shadow: 0 0 0;
   }
