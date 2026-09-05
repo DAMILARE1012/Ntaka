@@ -92,6 +92,7 @@ const routes = [
   { url: '/placement-test', priority: '0.9', changefreq: 'monthly', preload: () => [] },
   { url: '/partners', priority: '0.6', changefreq: 'monthly', preload: () => [] },
   { url: '/faq', priority: '0.7', changefreq: 'monthly', preload: () => [] },
+  { url: '/pricing', priority: '0.8', changefreq: 'monthly', preload: () => [] },
   { url: '/privacy', priority: '0.3', changefreq: 'yearly', preload: () => [] },
   { url: '/terms', priority: '0.3', changefreq: 'yearly', preload: () => [] },
   { url: '/cookies', priority: '0.3', changefreq: 'yearly', preload: () => [] },

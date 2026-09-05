@@ -96,9 +96,9 @@ export const videoCourse = (course) => ({
   },
   offers: {
     '@type': 'Offer',
-    price: course.price,
+    price: 0,
     priceCurrency: course.currency,
-    category: course.isFree ? 'Free' : 'Paid',
+    category: course.isOpen ? 'Free' : 'Subscription',
     availability: 'https://schema.org/InStock',
     url: absolute(`/interactive-learning/${course.id}`),
   },

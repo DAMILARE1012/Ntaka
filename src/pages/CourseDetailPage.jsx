@@ -18,6 +18,7 @@ import Flag from '@/components/common/Flag';
 import Seo from '@/components/common/Seo';
 import { courseSeo } from '@/lib/seo';
 import { graph, videoCourse, breadcrumbs } from '@/lib/structuredData';
+import { SUBSCRIPTION_MONTHLY, SUBSCRIPTION_INCLUDES } from '@/lib/pricing';
 
 function Curriculum({ modules }) {
   const [openId, setOpenId] = useState(modules[0]?.id);
@@ -130,7 +131,7 @@ export default function CourseDetailPage() {
             </Badge>
             <LevelBadge code={course.level} />
             <Badge tone="neutral">{course.trackLabel}</Badge>
-            {course.isFree && <Badge tone="palm">Free</Badge>}
+            {course.isOpen && <Badge tone="palm">Open course</Badge>}
           </div>
 
           <h1 className="mt-4 max-w-3xl text-balance font-display text-2xl font-semibold sm:text-3xl">
@@ -213,10 +214,27 @@ export default function CourseDetailPage() {
         </div>
 
         <aside className="surface-card h-fit p-5 lg:sticky lg:top-20">
-          <p className="font-display text-2xl font-semibold text-fg">
-            {course.isFree ? 'Free' : formatPrice(course.price)}
-          </p>
-          <p className="text-sm text-muted">One payment, lifetime access</p>
+          {/* Interactive learning is a subscription to the platform, so the panel sells
+              the plan, not the course. An open course is the exception and says so. */}
+          {course.isOpen ? (
+            <>
+              <p className="font-display text-2xl font-semibold text-fg">Free to read</p>
+              <p className="text-sm text-muted">
+                An open course — no subscription needed for this one.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-2xl font-semibold text-fg">
+                {formatPrice(SUBSCRIPTION_MONTHLY)}
+                <span className="text-base font-normal text-muted"> a month</span>
+              </p>
+              <p className="text-sm text-muted">
+                Included in your subscription, along with every other course in every
+                language we teach.
+              </p>
+            </>
+          )}
 
           {gate.required && (
             <div className="mt-4">
@@ -234,13 +252,24 @@ export default function CourseDetailPage() {
             </Button>
           ) : (
             <Button fullWidth size="lg" className="mt-4" to={`/dashboard/learn/${course.id}`}>
-              {course.isFree ? 'Start learning' : 'Enrol now'}
+              {course.isOpen ? 'Start learning' : 'Start with a subscription'}
             </Button>
           )}
-          <Button fullWidth variant="outline" className="mt-2">
+          <Button fullWidth variant="outline" className="mt-2" to="/pricing">
             <Icon name="play" className="h-4 w-4" />
-            Watch free preview
+            {course.isOpen ? 'See what a plan adds' : 'Compare plans'}
           </Button>
+
+          {!course.isOpen && (
+            <ul className="mt-5 space-y-2 border-t border-line pt-5">
+              {SUBSCRIPTION_INCLUDES.slice(0, 3).map((item) => (
+                <li key={item} className="flex gap-2.5 text-xs leading-relaxed text-muted">
+                  <Icon name="check" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={3} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
 
           <ul className="mt-6 space-y-2.5 border-t border-line pt-5">
             {course.includes.map((item) => (

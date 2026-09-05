@@ -2,6 +2,7 @@ import { rng } from '@/lib/prng';
 import { LANGUAGES_FULL } from '@/services/mock/catalog';
 import { TEACHERS } from '@/services/mock/teachers';
 
+
 /**
  * Interactive Learning = self-paced, on-demand interactive courses.
  * (Industry term: "self-paced video course" / "on-demand course". Ntaka surfaces it as
@@ -101,7 +102,9 @@ function buildCourse(language, teacher, track, index) {
     (n, m) => n + m.lessons.reduce((s, l) => s + l.minutes, 0),
     0,
   );
-  const isFree = r.chance(0.22);
+  // A handful stay open as a way in; everything else is included in the subscription.
+  // Nothing is sold course by course any more.
+  const isOpen = r.chance(0.22);
 
   return {
     id: `video-${language.id}-${track.key}`,
@@ -119,8 +122,11 @@ function buildCourse(language, teacher, track, index) {
     modules,
     lessonCount,
     totalMinutes,
-    price: isFree ? 0 : r.int(9, 49),
-    isFree,
+    // Interactive learning is a platform subscription, so a course has no price of its
+    // own. `access` says how someone gets in: open to anyone, or included in a plan.
+    access: isOpen ? 'open' : 'subscription',
+    isOpen,
+    price: 0,
     currency: 'USD',
     rating: r.float(4.3, 5.0, 1),
     reviews: r.int(24, 940),
@@ -130,7 +136,9 @@ function buildCourse(language, teacher, track, index) {
       `${lessonCount} on-demand video lessons`,
       'Downloadable phrase sheets and audio',
       'Quizzes after every module',
-      'Lifetime access, learn at your own pace',
+      // Not "lifetime access" any more: access runs as long as the subscription does,
+      // and saying otherwise would be a promise the billing model cannot keep.
+      isOpen ? 'Open to everyone, no subscription needed' : 'Included in your subscription',
       'Certificate of completion',
     ],
   };

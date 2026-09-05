@@ -12,6 +12,7 @@ import LanguageDetailPage from '@/pages/LanguageDetailPage';
 import PlacementTestPage from '@/pages/PlacementTestPage';
 import PartnersPage from '@/pages/PartnersPage';
 import FaqPage from '@/pages/FaqPage';
+import PricingPage from '@/pages/PricingPage';
 import PrivacyPage from '@/pages/legal/PrivacyPage';
 import TermsPage from '@/pages/legal/TermsPage';
 import CookiesPage from '@/pages/legal/CookiesPage';
@@ -83,6 +84,7 @@ export default function App() {
               {/* who we work with */}
               <Route path="/partners" element={<PartnersPage />} />
               <Route path="/faq" element={<FaqPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
 
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />

@@ -13,6 +13,7 @@ import {
 } from '@/features/videos/videosSlice';
 
 export const VIDEO_SORT_OPTIONS = [
+  { value: 'recommended', label: 'Recommended' },
   { value: 'popular', label: 'Most popular' },
   { value: 'rating', label: 'Highest rated' },
   { value: 'price-asc', label: 'Price: low to high' },
@@ -76,7 +77,12 @@ export default function CourseFilters({ lockLanguage = false }) {
 
         <span className="mx-2 hidden h-5 w-px bg-line sm:block" />
 
-        <Checkbox checked={filters.freeOnly} onChange={(v) => set('freeOnly', v)} label="Free only" />
+        <Checkbox
+          checked={filters.openOnly}
+          onChange={(v) => set('openOnly', v)}
+          label="Open courses only"
+          description="Readable without a subscription"
+        />
 
         {activeCount > 0 && (
           <button

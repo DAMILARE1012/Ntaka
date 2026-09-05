@@ -9,6 +9,7 @@ import { selectAllProgress } from '@/features/learning/progressSlice';
 import { VIDEOS_BY_ID } from '@/services/mock/videos';
 import { buildCurriculum, flattenCurriculum } from '@/services/mock/courseContent';
 import { PageTitle, Panel, StatTile, ComingSoon } from '@/dashboard/components/Panel';
+import RecommendedCourses from '@/features/learning/components/RecommendedCourses';
 
 /**
  * Courses the learner has opened, with where they stopped.
@@ -136,6 +137,12 @@ export default function MyCourses() {
           </div>
         </>
       )}
+
+      <RecommendedCourses
+        className="mt-8"
+        heading="What to take next"
+        limit={4}
+      />
     </>
   );
 }

@@ -12,6 +12,7 @@ import AvailabilityEditor from '@/dashboard/teacher/AvailabilityEditor';
 import LessonRoom from '@/dashboard/lesson/LessonRoom';
 import PlacementPage from '@/dashboard/placement/PlacementPage';
 import TestHistory from '@/dashboard/placement/TestHistory';
+import MilestonesPage from '@/dashboard/motivation/MilestonesPage';
 import CoursePlayer from '@/dashboard/learning/CoursePlayer';
 import MyCourses from '@/dashboard/learning/MyCourses';
 import RequireAuth from '@/dashboard/auth/RequireAuth';
@@ -38,6 +39,7 @@ export default function DashboardRoutes() {
         {/* learner */}
         <Route path="placement" element={<PlacementPage />} />
         <Route path="placement/history" element={<TestHistory />} />
+        <Route path="milestones" element={<MilestonesPage />} />
         <Route path="lessons" element={<MyLessons />} />
 
         {/* Interactive Learning player. Enrolment happens on arrival. */}

@@ -191,7 +191,35 @@ export const FAQS = [
     category: 'payments',
     question: 'How do I pay?',
     answer:
-      'You pay per lesson, per class seat or per course — there is no subscription and no minimum commitment. Prices are shown in full on every teacher, class and course before you book, with no fee added at checkout.',
+      'Live teaching is paid as you go: per lesson for 1-on-1, per seat for a group class, with no minimum commitment. Interactive learning is a subscription, monthly or yearly, and you can cancel it any time. Prices are shown in full before you book, with no fee added at checkout.',
+  },
+  {
+    id: 'price-difference',
+    category: 'payments',
+    question: 'How does pricing work across the three ways to learn?',
+    answer:
+      'Three different things, so three different prices. A 1-on-1 lesson is paid by the hour at that teacher’s own rate — the dearest, because nobody else is using the time. A group class is paid per person and is always cheaper per hour than that same teacher privately; a smaller class costs a little more per seat than a large one, because you get more of the teacher. Interactive learning is a subscription to the platform rather than a purchase.',
+  },
+  {
+    id: 'subscription',
+    category: 'payments',
+    question: 'What does the interactive learning subscription include?',
+    answer:
+      'Every interactive course, in every language we teach — not one course at a time. Start Yorùbá, add Igbo, come back to Swahili, all on the same plan. It covers the video and audio lessons, the quizzes, assessments at any point and certificates when you finish, plus any new course we add while you are subscribed. Monthly or yearly, and the yearly plan is twelve months for the price of ten.',
+  },
+  {
+    id: 'group-class-size-price',
+    category: 'payments',
+    question: 'Why do some group classes cost more per seat than others?',
+    answer:
+      'Because of how many seats the class holds. A class capped at four gives you far more of the teacher’s attention than one capped at ten, so it costs more per person. The price is set by the seats offered, not the seats sold — so it never goes up because a class filled, and never changes after you have booked.',
+  },
+  {
+    id: 'subscription-vs-classes',
+    category: 'payments',
+    question: 'Is the subscription cheaper than paying for group classes?',
+    answer:
+      'It depends how much you study, and we would rather say so. The subscription is a flat fee however much you use it, so the more you learn the less each hour costs. Against a typical teacher it beats paying per seat once you pass about four hours a month \u2014 roughly an hour a week. Study less than that and booking a group class seat is genuinely the better deal. Most people end up mixing all three.',
   },
   {
     id: 'refunds',

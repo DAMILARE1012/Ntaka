@@ -23,6 +23,7 @@ export const NAV_BY_ROLE = {
       items: [
         { to: '/dashboard/placement', label: 'Placement test', icon: 'target', end: true },
         { to: '/dashboard/placement/history', label: 'Test history', icon: 'clock' },
+        { to: '/dashboard/milestones', label: 'Milestones', icon: 'sparkles' },
         { to: '/dashboard/certificates', label: 'Certificates', icon: 'certificate', soon: true },
       ],
     },

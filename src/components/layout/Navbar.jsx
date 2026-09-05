@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import Logo from '@/components/layout/Logo';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import Button from '@/components/ui/Button';
@@ -9,15 +9,31 @@ import { useAppSelector } from '@/app/hooks';
 import { selectIsSignedIn, selectUser } from '@/dashboard/auth/authSlice';
 import Avatar from '@/components/ui/Avatar';
 import LearnMenu, { LEARN_MODES } from '@/components/layout/LearnMenu';
+import useActiveSection from '@/components/layout/useActiveSection';
 
-/** The three ways to learn live under one "Learn" menu; everything else is flat. */
+/**
+ * The three ways to learn live under one "Learn" menu; everything else is flat.
+ *
+ * `section` marks a link that points at part of a page rather than a page of its own. Those
+ * cannot use NavLink, which compares pathnames only — `/#partners` has the pathname `/`, so
+ * NavLink lit it up the moment the homepage loaded and left it lit forever. A section link
+ * is active only while that section is actually on screen.
+ *
+ * `alsoActiveOn` covers the sub-page that belongs to the same idea: someone reading
+ * /partners is plainly in the Partners part of the site even though the nav points at the
+ * homepage band.
+ */
 export const NAV_LINKS = [
   { to: '/languages', label: 'Languages' },
   // Points at the homepage band rather than the sub-page: someone clicking "Partners"
   // in the nav wants a glance, and the band's own link takes them to the full list.
-  { to: '/#partners', label: 'Partners' },
+  { to: '/#partners', label: 'Partners', section: 'partners', on: '/', alsoActiveOn: ['/partners'] },
+  { to: '/pricing', label: 'Pricing' },
   { to: '/faq', label: 'FAQ' },
 ];
+
+/** Section ids the navbar needs to watch, so the observer is set up once. */
+const SECTION_IDS = NAV_LINKS.filter((link) => link.section).map((link) => link.section);
 
 export default function Navbar() {
   const isSignedIn = useAppSelector(selectIsSignedIn);
@@ -25,6 +41,13 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
+
+  const activeSection = useActiveSection(SECTION_IDS);
+
+  /** A section link is active when its section is on screen, or on its own sub-page. */
+  const sectionIsActive = (link) =>
+    (pathname === link.on && activeSection === link.section) ||
+    (link.alsoActiveOn ?? []).includes(pathname);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -53,18 +76,38 @@ export default function Navbar() {
           <Logo />
           <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main">
             <LearnMenu />
-            {NAV_LINKS.map((link) => (
-              <NavLink key={link.to} to={link.to} className={linkClasses}>
-                {({ isActive }) => (
-                  <>
+            {NAV_LINKS.map((link) => {
+              // Section links compute their own state; NavLink cannot see a hash.
+              if (link.section) {
+                const active = sectionIsActive(link);
+                return (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    aria-current={active ? 'true' : undefined}
+                    className={linkClasses({ isActive: active })}
+                  >
                     {link.label}
-                    {isActive && (
+                    {active && (
                       <span className="absolute inset-x-3 -bottom-[13px] h-0.5 rounded-full bg-brand" />
                     )}
-                  </>
-                )}
-              </NavLink>
-            ))}
+                  </Link>
+                );
+              }
+
+              return (
+                <NavLink key={link.to} to={link.to} className={linkClasses}>
+                  {({ isActive }) => (
+                    <>
+                      {link.label}
+                      {isActive && (
+                        <span className="absolute inset-x-3 -bottom-[13px] h-0.5 rounded-full bg-brand" />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
           </nav>
         </div>
 
@@ -132,20 +175,37 @@ export default function Navbar() {
             <p className="px-3 pb-1 pt-3 text-2xs font-semibold uppercase tracking-[0.14em] text-faint">
               Explore
             </p>
-            {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  cx(
-                    'rounded-lg px-3 py-2.5 text-sm font-medium',
-                    isActive ? 'bg-brand-soft text-brand' : 'text-muted',
-                  )
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const mobileClasses = (isActive) =>
+                cx(
+                  'rounded-lg px-3 py-2.5 text-sm font-medium',
+                  isActive ? 'bg-brand-soft text-brand' : 'text-muted',
+                );
+
+              if (link.section) {
+                const active = sectionIsActive(link);
+                return (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    aria-current={active ? 'true' : undefined}
+                    className={mobileClasses(active)}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  className={({ isActive }) => mobileClasses(isActive)}
+                >
+                  {link.label}
+                </NavLink>
+              );
+            })}
 
             <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
               <span className="text-sm font-medium text-muted">Appearance</span>

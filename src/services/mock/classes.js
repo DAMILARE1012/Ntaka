@@ -1,6 +1,7 @@
 import { rng } from '@/lib/prng';
 import { LANGUAGES_FULL } from '@/services/mock/catalog';
 import { TEACHERS } from '@/services/mock/teachers';
+import { groupSeatPrice } from '@/lib/pricing';
 
 export const CLASS_TOPICS = [
   { key: 'conversation', label: 'Conversation club', levels: ['A2', 'B1', 'B2'] },
@@ -60,6 +61,7 @@ function buildClass(language, teacher, index) {
   const seatsTotal = r.pick([4, 5, 6, 6, 8, 10]);
   const seatsTaken = r.int(0, seatsTotal - 1);
   const sessionCount = r.pick([1, 1, 4, 6, 8]);
+  const durationMins = r.pick([45, 55, 60, 60, 90]);
 
   return {
     id: `class-${language.id}-${teacher.id}-${index}`,
@@ -74,13 +76,16 @@ function buildClass(language, teacher, index) {
     level,
     description: DESCRIPTION_BY_TOPIC[topic.key],
     startsAt: start.toISOString(),
-    durationMins: r.pick([45, 55, 60, 60, 90]),
+    durationMins,
     sessionCount,
     recurrence: sessionCount === 1 ? 'One-off session' : `${sessionCount}-week series · weekly`,
     seatsTotal,
     seatsTaken,
     seatsLeft: seatsTotal - seatsTaken,
-    pricePerSeat: r.int(4, 16),
+    // Derived from the teacher's own 1-on-1 rate and the class capacity: a small class
+    // sits nearer the private rate, a large one further below it. Always cheaper than
+    // 1-on-1, and keyed to seats offered rather than seats sold - see lib/pricing.js.
+    pricePerSeat: groupSeatPrice(teacher.hourlyRate, durationMins, seatsTotal),
     currency: 'USD',
     rating: teacher.rating,
     reviews: Math.round((teacher.reviews ?? 0) * r.float(0.05, 0.2)),

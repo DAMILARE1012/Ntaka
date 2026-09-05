@@ -8,6 +8,10 @@ import ClassCard from '@/features/classes/components/ClassCard';
 import CourseCard from '@/features/videos/components/CourseCard';
 import { getLevel } from '@/lib/cefr';
 import { cx } from '@/lib/format';
+import PlacementCelebration from '@/features/motivation/components/PlacementCelebration';
+import { useAppSelector } from '@/app/hooks';
+import { selectLearner } from '@/features/learner/learnerSlice';
+import { profileFrom, newestMilestone } from '@/features/motivation/milestones';
 
 function ScoreDial({ score, max }) {
   const pct = Math.round((score / max) * 100);
@@ -90,9 +94,24 @@ function SkillLine({ label, value, scored, partial }) {
 /** The end of the placement flow: level, evidence, and the three ways to act on it. */
 export default function PlacementResult({ result, onRestart, returnTo }) {
   const level = getLevel(result.level);
+  const learner = useAppSelector(selectLearner);
+
+  // The milestone just earned. Computed from the profile the result was already written
+  // into, so it cannot claim something the learner did not do.
+  const milestone = newestMilestone(
+    profileFrom({ history: learner.history, levels: learner.levels }),
+  );
 
   return (
     <div className="animate-fade-up space-y-10">
+      {/* The reframe comes first, before any level code. See PlacementCelebration for
+          why the order matters more than the styling. */}
+      <PlacementCelebration
+        result={result}
+        milestone={milestone}
+        languageName={result.languageName}
+      />
+
       {/* ------------------------------------------------------------ verdict */}
       <section className="overflow-hidden rounded-3xl bg-ink-950 text-white">
         <div className="brand-rule" />
@@ -106,19 +125,6 @@ export default function PlacementResult({ result, onRestart, returnTo }) {
               </span>
             </h1>
             <p className="mt-3 max-w-xl text-ink-200">{level.summary}</p>
-
-            <ul className="mt-6 space-y-2">
-              {level.canDo.map((item) => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-ink-200">
-                  <Icon
-                    name="check"
-                    className="mt-0.5 h-4 w-4 shrink-0 text-leaf-300"
-                    strokeWidth={2.5}
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
 
             <div className="mt-7 flex flex-wrap gap-3">
               {/* Arriving from a gate means they were part-way through something. Send

@@ -19,6 +19,7 @@ import { STATIC_SEO } from '../src/lib/seo.js';
 import { JOIN_OPENS_BEFORE_MIN, JOIN_CLOSES_AFTER_MIN } from '../src/lib/meetings.js';
 import { LEAD_TIME_MIN } from '../src/lib/booking.js';
 import { WHISPER_LANGUAGES } from '../src/lib/groqAssessment.js';
+import { SUBSCRIPTION_PLANS, subscriptionBreakEven } from '../src/lib/pricing.js';
 
 let failed = 0;
 const ok = (label, cond, note = '') => {

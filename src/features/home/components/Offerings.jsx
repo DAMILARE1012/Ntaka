@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import { SectionHeading } from '@/components/ui/States';
+import { SUBSCRIPTION_MONTHLY } from '@/lib/pricing';
 
 const OFFERINGS = [
   {
@@ -18,7 +19,7 @@ const OFFERINGS = [
     label: 'Group classes',
     tone: 'from-leaf-700 to-ink-900',
     body: 'Fixed level, fixed topic, and everybody speaks.',
-    points: ['4 to 10 learners', 'One-off or weekly series', 'From $4 a seat'],
+    points: ['4 to 10 learners', 'One-off or weekly series', 'Always cheaper than 1-on-1'],
     cta: 'View all classes',
   },
   {
@@ -26,8 +27,12 @@ const OFFERINGS = [
     icon: 'video',
     label: 'Interactive learning',
     tone: 'from-leaf-400 to-leaf-600',
-    body: 'Recorded by our teachers. Watch, repeat, keep forever.',
-    points: ['On demand, lifetime access', 'Phrase sheets and quizzes', 'Free courses in every language'],
+    body: 'Recorded by our teachers. One subscription, every language.',
+    points: [
+      'All 25 languages on one plan',
+      'Quizzes, games and certificates',
+      `From $${SUBSCRIPTION_MONTHLY} a month`,
+    ],
     cta: 'Browse courses',
   },
 ];

@@ -7,6 +7,7 @@ import Rating from '@/components/ui/Rating';
 import LevelBadge from '@/components/common/LevelBadge';
 import { cx, formatDateTime, formatDuration, formatPrice } from '@/lib/format';
 import Flag from '@/components/common/Flag';
+import { effectiveHourly } from '@/lib/pricing';
 
 function SeatMeter({ taken, total }) {
   const pct = Math.round((taken / total) * 100);
@@ -106,6 +107,11 @@ export default function ClassCard({ groupClass }) {
             <p className="text-xs text-muted">Per seat</p>
             <p className="font-display text-xl font-semibold text-fg">
               {formatPrice(groupClass.pricePerSeat)}
+            </p>
+            {/* Sessions run 45 to 90 minutes, so the seat price alone cannot be compared
+                against anything. The hourly figure is the one that can. */}
+            <p className="nums mt-0.5 text-2xs text-faint">
+              {formatPrice(Math.round(effectiveHourly(groupClass.pricePerSeat, groupClass.durationMins)))} an hour
             </p>
           </div>
           {full ? (

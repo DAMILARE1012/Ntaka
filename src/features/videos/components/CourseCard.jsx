@@ -8,6 +8,7 @@ import VideoThumb from '@/components/common/VideoThumb';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { toggleSavedCourse, selectIsCourseSaved } from '@/features/learner/learnerSlice';
 import { cx, formatCompact, formatDuration, formatPrice } from '@/lib/format';
+import { SUBSCRIPTION_MONTHLY } from '@/lib/pricing';
 
 /** Self-paced video course card. */
 export default function CourseCard({ course }) {
@@ -63,7 +64,7 @@ export default function CourseCard({ course }) {
 
         <div className="mt-3.5 flex flex-wrap items-center gap-2">
           <LevelBadge code={course.level} />
-          {course.isFree && <Badge tone="palm">Free</Badge>}
+          {course.isOpen && <Badge tone="palm">Open</Badge>}
         </div>
 
         <div className="mt-4 flex items-center gap-3">
@@ -84,9 +85,15 @@ export default function CourseCard({ course }) {
               {formatCompact(course.enrolled)} learners enrolled
             </p>
           </div>
-          <p className="font-display text-xl font-semibold text-fg">
-            {course.isFree ? 'Free' : formatPrice(course.price)}
-          </p>
+          <div className="text-right">
+            {/* Courses are not sold one by one any more - access comes with the plan. */}
+            <p className="text-sm font-semibold text-fg">
+              {course.isOpen ? 'Free to read' : 'In your plan'}
+            </p>
+            <p className="mt-0.5 text-2xs text-faint">
+              {course.isOpen ? 'No account needed' : `From ${formatPrice(SUBSCRIPTION_MONTHLY)} a month`}
+            </p>
+          </div>
         </div>
       </div>
     </article>

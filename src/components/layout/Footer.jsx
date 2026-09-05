@@ -28,6 +28,7 @@ const COLUMNS = [
     title: 'Ntaka',
     links: [
       { label: 'Our mission', to: '/' },
+      { label: 'Pricing', to: '/pricing' },
       { label: 'Partners', to: '/partners' },
       { label: 'How levels work', to: '/placement-test' },
       { label: 'FAQ', to: '/faq' },

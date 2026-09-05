@@ -84,7 +84,7 @@ export const teacherSeo = (teacher) => ({
 export const courseSeo = (course) => ({
   title: title(course.title),
   description: description(
-    `${course.promise} A self-paced ${course.languageName} course at ${course.level}: ${course.lessonCount} video lessons, lifetime access. ${course.isFree ? 'Free to start.' : `$${course.price}.`}`,
+    `${course.promise} A self-paced ${course.languageName} course at ${course.level}: ${course.lessonCount} video lessons. ${course.isOpen ? 'Free to read, no account needed.' : 'Included in the Ntaka subscription.'}`,
   ),
   path: `/interactive-learning/${course.id}`,
 });
@@ -115,7 +115,7 @@ export const STATIC_SEO = {
   videoLearning: {
     title: title('Interactive African Language Courses'),
     description: description(
-      'On-demand interactive courses in Yoruba, Igbo, Hausa, Swahili and more, recorded by native teachers. Learn at your own pace with phrase sheets, quizzes and lifetime access. Free courses available.',
+      'On-demand interactive courses in Yoruba, Igbo, Hausa, Swahili and more, recorded by native teachers. One subscription covers every language, with quizzes, certificates and open courses to start free.',
     ),
     path: '/interactive-learning',
   },
@@ -146,6 +146,13 @@ export const STATIC_SEO = {
       'Answers on placement tests, 1-on-1 lessons, group classes, interactive courses, pricing, certificates and how your data is handled at Ntaka.',
     ),
     path: '/faq',
+  },
+  pricing: {
+    title: title('Pricing — Lessons, Classes and Subscription'),
+    description: description(
+      'Private lessons by the hour, group classes priced per person, and every interactive course on one subscription covering all 25 African languages.',
+    ),
+    path: '/pricing',
   },
   privacy: {
     title: title('Privacy Policy'),

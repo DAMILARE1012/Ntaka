@@ -4,8 +4,11 @@ import Icon from '@/components/ui/Icon';
 import { SkeletonGrid } from '@/components/ui/Skeleton';
 import LevelBadge from '@/components/common/LevelBadge';
 import TeacherMiniCard from '@/features/teachers/components/TeacherMiniCard';
-import CourseCard from '@/features/videos/components/CourseCard';
-import { useGetTeachersQuery, useGetCoursesQuery, useSeedBookingsQuery } from '@/services/api';
+import RecommendedCourses from '@/features/learning/components/RecommendedCourses';
+import PlacedLanguages from '@/features/placement/components/PlacedLanguages';
+import MilestoneBoard, { useMilestoneProfile } from '@/features/motivation/components/MilestoneBoard';
+import { evaluateMilestones } from '@/features/motivation/milestones';
+import { useGetTeachersQuery, useSeedBookingsQuery } from '@/services/api';
 import { useAppSelector } from '@/app/hooks';
 import { selectLearner } from '@/features/learner/learnerSlice';
 import { selectUser } from '@/dashboard/auth/authSlice';
@@ -27,12 +30,10 @@ export default function LearnerOverview() {
     level: placement?.level ?? '',
     pageSize: 3,
   });
-  const { data: courses } = useGetCoursesQuery({
-    languageId: focusId || '',
-    pageSize: 2,
-  });
-
   const placedCount = Object.keys(learner.levels).length;
+
+  const milestoneProfile = useMilestoneProfile();
+  const milestones = evaluateMilestones(milestoneProfile);
 
   // Seeds a couple of lessons the first time, then just reads them back.
   const { data: upcoming } = useSeedBookingsQuery(
@@ -78,7 +79,13 @@ export default function LearnerOverview() {
           icon="calendar"
           tone={upcoming?.length ? 'brand' : 'default'}
         />
-        <StatTile label="Saved teachers" value={learner.savedTeacherIds.length} icon="heart" />
+        <StatTile
+          label="Days practised"
+          value={milestoneProfile.activeDays}
+          sub={`${milestones.earned.length} of ${milestones.total} milestones`}
+          icon="sparkles"
+          tone={milestoneProfile.activeDays > 0 ? 'brand' : 'default'}
+        />
       </div>
 
       <div className="mt-6 space-y-6">
@@ -134,25 +141,37 @@ export default function LearnerOverview() {
           </Panel>
         )}
 
-        {placement && courses?.items.length > 0 && (
-          <Panel
-            title="Study between lessons"
-            action={
-              <Link
-                to={`/interactive-learning?language=${focusId}`}
-                className="text-sm font-semibold text-brand hover:text-brand-hover"
-              >
-                All courses
-              </Link>
-            }
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              {courses.items.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
+        {placement && (
+          <Panel title="Study between lessons">
+            {/* Ranked by the same comparator the placement result and the course listing
+                use, so what the test recommended is what is waiting here. */}
+            <RecommendedCourses
+              heading={`Interactive courses for ${language?.name} at ${placement.level}`}
+              languageId={focusId}
+              limit={4}
+            />
           </Panel>
         )}
+
+        {placedCount > 0 && (
+          <Panel title="Languages you have placed in">
+            <PlacedLanguages />
+          </Panel>
+        )}
+
+        <Panel
+          title="Milestones"
+          action={
+            <Link
+              to="/dashboard/milestones"
+              className="text-sm font-semibold text-brand hover:text-brand-hover"
+            >
+              See all
+            </Link>
+          }
+        >
+          <MilestoneBoard compact limit={4} />
+        </Panel>
 
         {!placement && (
           <Panel title="Where to begin">

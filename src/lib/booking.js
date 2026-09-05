@@ -1,3 +1,4 @@
+import { oneToOnePrice } from '@/lib/pricing';
 import {
   calendarDays,
   zonedTimeToUtc,
@@ -195,6 +196,7 @@ export const isFreeCancellation = (startsAt, now = new Date()) =>
 
 export function priceFor(teacher, lessonTypeId) {
   const type = LESSON_TYPES[lessonTypeId] ?? LESSON_TYPES.standard;
+  // A trial is a taster price, deliberately outside the hierarchy - see lib/pricing.js.
   if (type.id === 'trial') return teacher.trialPrice;
-  return Math.round((teacher.hourlyRate * type.durationMin) / 60);
+  return oneToOnePrice(teacher.hourlyRate, type.durationMin);
 }

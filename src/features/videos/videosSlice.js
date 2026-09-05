@@ -5,8 +5,8 @@ const initialState = {
   languageId: '',
   level: '',
   track: '',
-  freeOnly: false,
-  sort: 'popular',
+  openOnly: false,
+  sort: 'recommended',
   page: 1,
   pageSize: 6,
 };
@@ -42,7 +42,7 @@ export const selectVideoFilters = (state) => state.videos;
 
 export const selectActiveVideoFilterCount = (state) => {
   const f = state.videos;
-  return (f.level ? 1 : 0) + (f.track ? 1 : 0) + (f.freeOnly ? 1 : 0);
+  return (f.level ? 1 : 0) + (f.track ? 1 : 0) + (f.openOnly ? 1 : 0);
 };
 
 export default videosSlice.reducer;

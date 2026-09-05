@@ -9,6 +9,7 @@ import * as meetings from '@/services/mock/meetings';
 import { LESSON_TYPES, BOOKING_STATUS, priceFor, isFreeCancellation } from '@/lib/booking';
 import { viewerTimezone, formatInZone, zonedDateKey } from '@/lib/timezone';
 import { calendarDays } from '@/lib/timezone';
+import { recommendCourses, courseComparator } from '@/features/learning/recommend';
 
 /**
  * In-memory query layer standing in for the Ntaka backend.
@@ -203,6 +204,11 @@ export function readClass(id) {
 /* ------------------------------------------------------------ interactive courses */
 
 const VIDEO_SORTS = {
+  // The default. Signed out there is no placement to work with, so this collapses to
+  // popularity and rating - but it is the SAME comparator the dashboard uses, so the
+  // order a visitor sees on the marketing page is the order they keep after signing in,
+  // reshuffled only by evidence the test actually produced.
+  recommended: courseComparator(),
   popular: (a, b) => b.enrolled - a.enrolled,
   rating: (a, b) => b.rating - a.rating,
   'price-asc': (a, b) => a.price - b.price,
@@ -215,8 +221,8 @@ export function listVideos({
   languageId = '',
   level = '',
   track = '',
-  freeOnly = false,
-  sort = 'popular',
+  openOnly = false,
+  sort = 'recommended',
   page = 1,
   pageSize = 9,
 } = {}) {
@@ -224,14 +230,14 @@ export function listVideos({
     if (languageId && v.languageId !== languageId) return false;
     if (level && v.level !== level) return false;
     if (track && v.trackKey !== track) return false;
-    if (freeOnly && !v.isFree) return false;
+    if (openOnly && !v.isOpen) return false;
     if (q && !(matches(v.title, q) || matches(v.languageName, q) || matches(v.promise, q))) {
       return false;
     }
     return true;
   })
     .map((v) => ({ ...v, teacher: TEACHERS_BY_ID[v.teacherId] }))
-    .sort(VIDEO_SORTS[sort] ?? VIDEO_SORTS.popular);
+    .sort(VIDEO_SORTS[sort] ?? VIDEO_SORTS.recommended);
 
   return paginate(filtered, page, pageSize);
 }
@@ -414,10 +420,15 @@ export function submitPlacement(payload) {
     result.level,
     (level) => listClasses({ languageId: payload.languageId, level, pageSize: 2 }).items,
   );
-  const recommendedCourses = nearestLevelMatch(
-    result.level,
-    (level) => listVideos({ languageId: payload.languageId, level, pageSize: 2 }).items,
-  );
+  // Courses come from the shared recommender rather than a second level filter, so the
+  // list on the result screen is the same list the dashboard shows afterwards. Passing
+  // the just-scored level as a one-language profile is what makes them agree.
+  const recommendedCourses = recommendCourses({
+    courses: VIDEO_COURSES.filter((c) => c.languageId === payload.languageId),
+    levels: { [payload.languageId]: { level: result.level } },
+    languageId: payload.languageId,
+    limit: 4,
+  }).map(({ course, reason }) => ({ ...course, recommendationReason: reason }));
 
   return {
     ...result,
