@@ -170,7 +170,7 @@ function AudioLesson({ lesson, onComplete }) {
                 )}
               >
                 <span>
-                  <span className="block font-display text-lg font-semibold text-fg">
+                  <span className="lang-target block font-display text-lg font-semibold text-fg">
                     {phrase.term}
                   </span>
                   <span className="block text-sm text-muted">{phrase.meaning}</span>
@@ -215,7 +215,7 @@ function ReadingLesson({ lesson, onComplete }) {
       <div className="mt-5 space-y-3">
         {lesson.reading?.body.map((paragraph, index) => (
           <div key={paragraph}>
-            <p className="text-md leading-relaxed text-fg">{paragraph}</p>
+            <p className="lang-target text-md leading-relaxed text-fg">{paragraph}</p>
             {/* Line-for-line English, off by default: reading the translation alongside
                 is not reading the passage. */}
             {showGloss && gloss?.[index] && (
@@ -239,7 +239,7 @@ function ReadingLesson({ lesson, onComplete }) {
           <dl className="mt-3 grid gap-2 sm:grid-cols-2">
             {lesson.reading.glossary.map((item) => (
               <div key={item.term} className="flex items-baseline justify-between gap-3">
-                <dt className="font-display font-semibold text-fg">{item.term}</dt>
+                <dt className="lang-target font-display font-semibold text-fg">{item.term}</dt>
                 <dd className="text-sm text-muted">{item.meaning}</dd>
               </div>
             ))}

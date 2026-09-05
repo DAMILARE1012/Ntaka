@@ -29,12 +29,64 @@
     -->
     <script>
       (function () {
+        var root = document.documentElement;
         try {
           if (localStorage.getItem('ntaka.theme') === 'dark') {
-            document.documentElement.classList.add('dark');
+            root.classList.add('dark');
           }
         } catch (e) {
           /* storage blocked - stay on the light default */
+        }
+
+        /*
+          Reading preferences, applied before first paint for the same reason as the
+          theme: someone who needs 150% text should never see a flash of 100% first.
+
+          The attribute names are duplicated from
+          src/features/personalization/preferences.js rather than imported, because this
+          runs before any module loads. scripts/personalization-check.jsx asserts the two
+          lists match, so they cannot drift apart silently.
+        */
+        var ATTRS = {
+          textScale: ['data-pref-text', '100'],
+          lineHeight: ['data-pref-leading', 'normal'],
+          letterSpacing: ['data-pref-tracking', 'normal'],
+          font: ['data-pref-font', 'default'],
+          contrast: ['data-pref-contrast'],
+          grayscale: ['data-pref-grayscale'],
+          reduceMotion: ['data-pref-motion'],
+          highlightLinks: ['data-pref-links'],
+          bigCursor: ['data-pref-cursor'],
+          readingRuler: ['data-pref-ruler'],
+          toneMarks: ['data-pref-tones']
+        };
+
+        try {
+          var raw = localStorage.getItem('ntaka.reading.v1');
+          var prefs = raw ? JSON.parse(raw) : null;
+
+          if (!prefs) {
+            /* Nothing saved: honour what the operating system already says. */
+            prefs = {};
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              prefs.reduceMotion = true;
+            }
+            if (window.matchMedia('(prefers-contrast: more)').matches) {
+              prefs.contrast = true;
+            }
+          }
+
+          for (var key in ATTRS) {
+            var spec = ATTRS[key];
+            var value = prefs[key];
+            if (spec.length === 1) {
+              if (value === true) root.setAttribute(spec[0], 'on');
+            } else if (value && value !== spec[1]) {
+              root.setAttribute(spec[0], String(value));
+            }
+          }
+        } catch (e) {
+          /* storage blocked or malformed - the defaults are correct */
         }
       })();
     </script>

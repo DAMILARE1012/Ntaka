@@ -12,6 +12,7 @@ import { enrol, completeLesson, recordCheckpoint } from '@/features/learning/pro
 import * as accounts from '@/services/mock/accounts';
 import { VIDEO_COURSES } from '@/services/mock/videos';
 import { buildCurriculum, flattenCurriculum, vocabularyFor, LESSON_TYPES } from '@/services/mock/courseContent';
+import { subscriptionLoaded } from '../src/features/payments/subscriptionSlice.js';
 
 async function main() {
   let fails = 0;
@@ -134,6 +135,15 @@ async function main() {
   console.log('');
   console.log('--- screens render ---');
   await store.dispatch(ntakaApi.endpoints.getCourse.initiate(yoruba.id));
+  // A subscription is now required to open a course. Granted here so this suite keeps
+  // testing the LEARNING experience; the paywall itself is covered by payments-check.
+  store.dispatch(
+    subscriptionLoaded({
+      status: 'active',
+      planId: 'monthly',
+      currentPeriodEnd: new Date(Date.now() + 30 * 86400000).toISOString(),
+    }),
+  );
   const player = render(store, `/dashboard/learn/${yoruba.id}`);
   check('the course player renders', player.includes(yoruba.title));
   check('the syllabus is present', player.includes('Course overview'));

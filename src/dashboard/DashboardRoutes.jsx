@@ -13,6 +13,7 @@ import LessonRoom from '@/dashboard/lesson/LessonRoom';
 import PlacementPage from '@/dashboard/placement/PlacementPage';
 import TestHistory from '@/dashboard/placement/TestHistory';
 import MilestonesPage from '@/dashboard/motivation/MilestonesPage';
+import BillingPage from '@/dashboard/billing/BillingPage';
 import CoursePlayer from '@/dashboard/learning/CoursePlayer';
 import MyCourses from '@/dashboard/learning/MyCourses';
 import RequireAuth from '@/dashboard/auth/RequireAuth';
@@ -40,6 +41,7 @@ export default function DashboardRoutes() {
         <Route path="placement" element={<PlacementPage />} />
         <Route path="placement/history" element={<TestHistory />} />
         <Route path="milestones" element={<MilestonesPage />} />
+        <Route path="billing" element={<BillingPage />} />
         <Route path="lessons" element={<MyLessons />} />
 
         {/* Interactive Learning player. Enrolment happens on arrival. */}

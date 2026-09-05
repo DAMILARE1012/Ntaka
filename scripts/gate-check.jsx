@@ -12,6 +12,7 @@ import * as accounts from '@/services/mock/accounts';
 import { TEACHERS } from '@/services/mock/teachers';
 import { GROUP_CLASSES } from '@/services/mock/classes';
 import { VIDEO_COURSES } from '@/services/mock/videos';
+import { subscriptionLoaded } from '../src/features/payments/subscriptionSlice.js';
 
 async function main() {
   let fails = 0;
@@ -105,6 +106,18 @@ async function main() {
 
   const okCourse = render(placed, `/interactive-learning/${course.id}`);
   check('course: start is offered', okCourse.includes(`/dashboard/learn/${course.id}`));
+  // Interactive learning now needs a subscription as well as a level. Granting one here
+  // keeps this suite testing the PLACEMENT gate rather than accidentally testing the
+  // paywall - scripts/payments-check.jsx covers that separately.
+  const subscribe = (s) =>
+    s.dispatch(
+      subscriptionLoaded({
+        status: 'active',
+        planId: 'monthly',
+        currentPeriodEnd: new Date(Date.now() + 30 * 86400000).toISOString(),
+      }),
+    );
+  subscribe(placed);
   check('player opens', render(placed, `/dashboard/learn/${course.id}`).includes('Course overview'));
 
   console.log('');

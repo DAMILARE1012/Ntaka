@@ -4,6 +4,7 @@ import { useAppSelector } from '@/app/hooks';
 import { selectThemeMode } from '@/features/theme/themeSlice';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import PersonalizationButton from '@/features/personalization/PersonalizationButton';
 
 /** Scrolls to top on navigation — routers do not do this for you. */
 /**
@@ -68,6 +69,7 @@ export default function PageLayout({ children }) {
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      <PersonalizationButton />
     </div>
   );
 }

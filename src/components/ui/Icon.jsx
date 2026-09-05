@@ -34,12 +34,26 @@ const PATHS = {
   certificate: 'M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm-3 .8V22l3-1.8 3 1.8v-6.2',
   minus: 'M5 12h14',
   plus: 'M12 5v14M5 12h14',
+  /*
+   * The universal access symbol - round head, outstretched arms, legs apart. Drawn as
+   * a filled glyph rather than a stroke, because at 20px the stroked version loses the
+   * gap between the head and the shoulders and reads as a blob.
+   *
+   * This shape is worth using exactly rather than inventing something prettier: people
+   * who need it scan for it, and a bespoke icon is one they have to stop and decode.
+   */
+  accessibility:
+    'M12 2.05a2.15 2.15 0 1 0 0 4.3 2.15 2.15 0 0 0 0-4.3ZM21 9.15h-5.85V22h-2.1v-6.05h-2.1V22H8.85V9.15H3V7.05h18v2.1Z',
 };
+
+/** Icons drawn as filled shapes. Everything else is stroked on the same 24x24 grid. */
+const FILLED = new Set(['play', 'accessibility']);
 
 export default function Icon({ name, className = 'h-5 w-5', strokeWidth = 1.8, ...rest }) {
   const d = PATHS[name];
   if (!d) return null;
-  const filled = name === 'play';
+  // Glyphs that are solid shapes rather than line drawings.
+  const filled = FILLED.has(name);
   return (
     <svg
       viewBox="0 0 24 24"

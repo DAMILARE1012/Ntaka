@@ -10,6 +10,8 @@ import learnerReducer, { learnerPersistence } from '@/features/learner/learnerSl
 import themeReducer, { themePersistence } from '@/features/theme/themeSlice';
 import authReducer, { sessionPersistence } from '@/dashboard/auth/authSlice';
 import progressReducer, { progressPersistence } from '@/features/learning/progressSlice';
+import subscriptionReducer, { subscriptionPersistence } from '@/features/payments/subscriptionSlice';
+import preferencesReducer, { preferencesPersistence } from '@/features/personalization/preferencesSlice';
 
 /**
  * `devChecks: false` is for scripts/prerender.jsx, which builds a store per page across
@@ -29,6 +31,8 @@ export const makeStore = ({ devChecks = true } = {}) =>
       theme: themeReducer,
       auth: authReducer,
       progress: progressReducer,
+      subscription: subscriptionReducer,
+      preferences: preferencesReducer,
     },
     middleware: (getDefault) =>
       getDefault(
@@ -40,6 +44,8 @@ export const makeStore = ({ devChecks = true } = {}) =>
         themePersistence,
         sessionPersistence,
         progressPersistence,
+        subscriptionPersistence,
+        preferencesPersistence,
       ),
   });
 

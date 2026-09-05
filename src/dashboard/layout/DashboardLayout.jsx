@@ -12,6 +12,7 @@ import { useSignOutMutation } from '@/services/authApi';
 import { ROLE_LABELS } from '@/services/mock/accounts';
 import Sidebar from '@/dashboard/layout/Sidebar';
 import { sessionEnded, selectUser } from '@/dashboard/auth/authSlice';
+import PersonalizationButton from '@/features/personalization/PersonalizationButton';
 
 /**
  * Shell for the authenticated app.
@@ -116,6 +117,7 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
+      <PersonalizationButton />
     </div>
   );
 }

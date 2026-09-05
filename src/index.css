@@ -248,3 +248,150 @@
     transform: translateX(0);
   }
 }
+
+
+/* ==========================================================================
+   READING PREFERENCES
+   --------------------------------------------------------------------------
+   Driven entirely by attributes on <html>, written by
+   src/features/personalization/preferences.js and by the pre-paint script in
+   index.html. No preference needs JavaScript once the attribute is set, which
+   is why they survive hydration and work with the page half-loaded.
+
+   `!important` appears deliberately below. These rules exist to override the
+   author's own styling on the reader's instruction, which is the one case
+   where it is the correct tool rather than a symptom.
+   ========================================================================== */
+
+/* ------------------------------------------------------------- text size ---
+   Every size in tailwind.config.js is in rem, so scaling the root scales the
+   whole page proportionally - including line-heights, which are also in rem.
+   A px-based scale would have made this control silently do nothing. */
+:root[data-pref-text='110'] { font-size: 110%; }
+:root[data-pref-text='125'] { font-size: 125%; }
+:root[data-pref-text='150'] { font-size: 150%; }
+
+/* --------------------------------------------------------- line spacing ---
+   Tailwind sets a line-height alongside every font-size, so a value on <body>
+   would never win. These target the text elements themselves. */
+:root[data-pref-leading='relaxed'] p,
+:root[data-pref-leading='relaxed'] li,
+:root[data-pref-leading='relaxed'] dd,
+:root[data-pref-leading='relaxed'] blockquote { line-height: 1.6 !important; }
+
+:root[data-pref-leading='loose'] p,
+:root[data-pref-leading='loose'] li,
+:root[data-pref-leading='loose'] dd,
+:root[data-pref-leading='loose'] blockquote { line-height: 2 !important; }
+
+:root[data-pref-leading='loose'] p + p { margin-top: 1.25em; }
+
+/* ------------------------------------------------------- letter spacing ---
+   0.12em and 0.16em are the values WCAG 1.4.12 asks content to survive. */
+:root[data-pref-tracking='wide'] body {
+  letter-spacing: 0.06em;
+  word-spacing: 0.08em;
+}
+:root[data-pref-tracking='wider'] body {
+  letter-spacing: 0.12em;
+  word-spacing: 0.16em;
+}
+:root[data-pref-tracking] .font-display { letter-spacing: inherit; }
+
+/* --------------------------------------------------------------- fonts --- */
+:root[data-pref-font='readable'] body,
+:root[data-pref-font='readable'] .font-display {
+  font-family: Verdana, Tahoma, 'DejaVu Sans', sans-serif !important;
+}
+:root[data-pref-font='mono'] body,
+:root[data-pref-font='mono'] .font-display {
+  font-family: 'Courier New', 'DejaVu Sans Mono', monospace !important;
+}
+
+/* ------------------------------------------------------------ contrast ---
+   Token overrides rather than a CSS filter. A filter would desaturate the
+   partner logos and every teacher photograph along with the text, and would
+   make <html> a containing block for fixed descendants. */
+:root[data-pref-contrast] {
+  --muted: var(--fg);
+  --faint: var(--fg);
+  --line: var(--fg);
+  --line-strong: var(--fg);
+}
+:root[data-pref-contrast] a,
+:root[data-pref-contrast] button { text-underline-offset: 2px; }
+:root[data-pref-contrast] *:focus-visible {
+  outline: 3px solid rgb(var(--fg)) !important;
+  outline-offset: 2px !important;
+}
+
+/* ----------------------------------------------------------- grayscale ---
+   Applied to <html> specifically. On a wrapper element it would create a
+   containing block and detach the sticky header. */
+:root[data-pref-grayscale] { filter: grayscale(1); }
+
+/* -------------------------------------------------------- reduce motion --- */
+:root[data-pref-motion] *,
+:root[data-pref-motion] *::before,
+:root[data-pref-motion] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+:root[data-pref-motion] .marquee-track { animation: none !important; }
+
+/* ----------------------------------------------------------------- links --- */
+:root[data-pref-links] a {
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 2px;
+}
+
+/* ---------------------------------------------------------------- cursor ---
+   An inline SVG data URI, so it needs no network request and cannot fail to
+   load. The trailing keyword is the fallback if the image is ever rejected. */
+:root[data-pref-cursor],
+:root[data-pref-cursor] * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Cpath d='M5.5 2.5l13 9-5.6 1.1 3 6-2.6 1.3-3-6-4.8 3.4z' fill='white' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 4 2, auto;
+}
+:root[data-pref-cursor] a,
+:root[data-pref-cursor] button,
+:root[data-pref-cursor] summary,
+:root[data-pref-cursor] [role='button'] {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24'%3E%3Cpath d='M9 2v9.5L6.6 9.3 4.8 11l4.6 6.4h8.2L19 9.7l-2.6-.8V7.2l-2.6-.7V5l-2.6-.7V2z' fill='white' stroke='black' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E") 8 2, pointer;
+}
+
+/* --------------------------------------------------------- reading ruler ---
+   Two dimmed bands, positioned from a custom property the panel updates on
+   pointer move. pointer-events:none so the page stays entirely usable. */
+:root[data-pref-ruler] body::before,
+:root[data-pref-ruler] body::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  background: rgb(0 0 0 / 0.55);
+  pointer-events: none;
+  z-index: 40;
+}
+:root[data-pref-ruler] body::before {
+  top: 0;
+  height: max(0px, calc(var(--ruler-y, 50vh) - 3.5rem));
+}
+:root[data-pref-ruler] body::after {
+  top: calc(var(--ruler-y, 50vh) + 3.5rem);
+  bottom: 0;
+}
+
+/* --------------------------------------------------------- tone marks ---
+   Target-language text only. The interface stays at whatever size the reader
+   already chose, so enlarging a Yoruba phrase does not push the surrounding
+   layout around. `.lang-target` is applied where target-language strings are
+   rendered - conversation lines, reading passages, vocabulary. */
+:root[data-pref-tones] .lang-target {
+  font-size: 1.2em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+}

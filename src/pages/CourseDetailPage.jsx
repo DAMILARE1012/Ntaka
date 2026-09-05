@@ -19,6 +19,8 @@ import Seo from '@/components/common/Seo';
 import { courseSeo } from '@/lib/seo';
 import { graph, videoCourse, breadcrumbs } from '@/lib/structuredData';
 import { SUBSCRIPTION_MONTHLY, SUBSCRIPTION_INCLUDES } from '@/lib/pricing';
+import { useAppSelector } from '@/app/hooks';
+import { selectHasSubscription } from '@/features/payments/subscriptionSlice';
 
 function Curriculum({ modules }) {
   const [openId, setOpenId] = useState(modules[0]?.id);
@@ -81,6 +83,7 @@ export default function CourseDetailPage() {
   const { courseId } = useParams();
   const { data: course, isLoading, isError, refetch } = useGetCourseQuery(courseId);
   const gate = usePlacementGate(course?.languageId);
+  const subscribed = useAppSelector(selectHasSubscription);
 
   if (isError) {
     return (
@@ -252,7 +255,7 @@ export default function CourseDetailPage() {
             </Button>
           ) : (
             <Button fullWidth size="lg" className="mt-4" to={`/dashboard/learn/${course.id}`}>
-              {course.isOpen ? 'Start learning' : 'Start with a subscription'}
+              {course.isOpen || subscribed ? 'Start learning' : 'Start with a subscription'}
             </Button>
           )}
           <Button fullWidth variant="outline" className="mt-2" to="/pricing">

@@ -92,7 +92,7 @@ export default function ConversationPlayer({ conversation, onListened, listened 
                   <span className="block text-2xs font-semibold uppercase tracking-wide text-faint">
                     {speaker?.name}
                   </span>
-                  <span className="mt-0.5 block font-display text-md leading-relaxed text-fg">
+                  <span className="lang-target mt-0.5 block font-display text-md leading-relaxed text-fg">
                     {line.text}
                   </span>
                   {showGloss && (

@@ -30,7 +30,7 @@ export const NAV_BY_ROLE = {
     {
       heading: 'Account',
       items: [
-        { to: '/dashboard/payments', label: 'Payments', icon: 'book', soon: true },
+        { to: '/dashboard/billing', label: 'Subscription', icon: 'badgeCheck' },
         { to: '/dashboard/settings', label: 'Settings', icon: 'shield', soon: true },
       ],
     },

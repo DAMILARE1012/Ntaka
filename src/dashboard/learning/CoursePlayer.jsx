@@ -22,6 +22,8 @@ import LessonStage from '@/features/learning/components/LessonStage';
 import Checkpoint from '@/features/learning/components/Checkpoint';
 import { PlacementRequiredScreen } from '@/features/placement/components/PlacementGate';
 import { usePlacementGate } from '@/features/placement/usePlacementGate';
+import SubscriptionGate from '@/features/payments/components/SubscriptionGate';
+import { selectHasSubscription } from '@/features/payments/subscriptionSlice';
 
 /**
  * The Interactive Learning player.
@@ -39,6 +41,10 @@ export default function CoursePlayer() {
 
   const { data: course, isFetching } = useGetCourseQuery(courseId);
   const gate = usePlacementGate(course?.languageId);
+  const subscribed = useAppSelector(selectHasSubscription);
+  // An open course needs no plan; everything else does. Placement is checked first
+  // because a level is required before learning at all, subscription or not.
+  const needsPlan = Boolean(course) && !course.isOpen && !subscribed;
   const [activeId, setActiveId] = useState(null);
   const [checkpointId, setCheckpointId] = useState(null);
 
@@ -47,8 +53,8 @@ export default function CoursePlayer() {
 
   // Enrol on arrival - but only once the learner is actually allowed to be here.
   useEffect(() => {
-    if (courseId && course && !gate.required) dispatch(enrol(courseId));
-  }, [courseId, course, gate.required, dispatch]);
+    if (courseId && course && !gate.required && !needsPlan) dispatch(enrol(courseId));
+  }, [courseId, course, gate.required, needsPlan, dispatch]);
 
   // Resume where they left off, or start at the beginning.
   useEffect(() => {
@@ -84,6 +90,22 @@ export default function CoursePlayer() {
         backTo={`/interactive-learning/${courseId}`}
         backLabel="Back to the course overview"
       />
+    );
+  }
+
+  // Placed, but not subscribed. Same treatment as the placement gate: replace the page
+  // rather than overlay it, because there is nothing usable behind it.
+  if (needsPlan) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <SubscriptionGate courseName={course.title} />
+        <Link
+          to={`/interactive-learning/${courseId}`}
+          className="link-arrow mt-6 inline-flex"
+        >
+          Back to the course overview
+        </Link>
+      </div>
     );
   }
 
