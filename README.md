@@ -1,4 +1,4 @@
-# Ntaka
+## Ntaka
 
 A digital language-learning platform for African languages — 1-on-1 lessons, group classes and
 self-paced video courses, taught by native speakers and graded against the six CEFR levels.
