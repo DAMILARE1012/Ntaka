@@ -1,4 +1,4 @@
-## Ntaka
+# Ntaka
 
 A digital language-learning platform for African languages — 1-on-1 lessons, group classes and
 self-paced video courses, taught by native speakers and graded against the six CEFR levels.
@@ -20,7 +20,6 @@ at the wrong domain:
 VITE_SITE_URL=https://your-domain.com npm run build:static
 ```
 
----
 
 ## What is in the product
 
@@ -184,7 +183,6 @@ To move a language onto the quiz route: add a bank to `QUESTION_BANKS` in
 [`src/services/mock/placement.js`](src/services/mock/placement.js) and set `hasPlacementBank: true`
 in the catalogue. Nothing else changes.
 
----
 
 ## Architecture
 
@@ -356,7 +354,6 @@ container with a `ResizeObserver` (four across on desktop, three then two as it 
 duration is derived from it, so the speed stays constant at 52px/s whatever the catalogue size. It
 pauses on hover and `:focus-within`, and is disabled entirely under `prefers-reduced-motion`.
 
----
 
 ## Theme
 
@@ -538,8 +535,4 @@ beside the badge instead.
 - The project directory is `Ntaka` and the product is named **Ntaka** throughout. Your brief opened
   with "Nkata" once — if that is the intended name, it appears in `index.html`, `Logo.jsx`,
   `Footer.jsx`, `package.json` and this file.
-#   N t a k a 
- 
- #   N t a k a 
- 
- 
+#
